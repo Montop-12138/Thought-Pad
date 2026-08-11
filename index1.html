@@ -4,18 +4,200 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>新芽 · 灵感备忘录 · 云端同步</title>
-    <!-- 腾讯云开发 SDK -->
     <script src="https://static.cloudbase.net/cloudbase-js-sdk/2.28.6/cloudbase.full.js">
     </script>
     <style>
-        /* ... 样式同之前，保持不变 ... */
-        /* 为节省篇幅，样式代码与之前完全相同，此处省略，实际使用请补全 */
-        /* 您可以直接复制之前版本的样式，或者我重新生成完整文件 */
+        /* ===== 所有样式与之前完全相同 ===== */
+        *{margin:0;padding:0;box-sizing:border-box}
+        body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;background:#eaf6ed;background-image:radial-gradient(circle at 10% 20%,rgba(120,200,150,0.08) 0%,transparent 60%),radial-gradient(circle at 90% 80%,rgba(80,180,120,0.06) 0%,transparent 50%);min-height:100vh;display:flex;align-items:center;justify-content:center;padding:12px}
+        .app{max-width:1200px;width:100%;background:rgba(255,255,255,0.65);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border-radius:32px;border:1px solid rgba(100,190,140,0.25);box-shadow:0 20px 60px rgba(60,140,100,0.08),0 8px 24px rgba(60,140,100,0.04);overflow:hidden;transition:all .2s}
+        .header{display:flex;justify-content:space-between;align-items:center;padding:14px 24px;border-bottom:1px solid rgba(100,190,140,0.15);background:rgba(255,255,255,0.3);backdrop-filter:blur(4px);flex-wrap:wrap;gap:8px}
+        .header h1{font-size:18px;font-weight:600;display:flex;align-items:center;gap:8px;color:#1f4a33}
+        .header h1 .icon-leaf{display:inline-flex;align-items:center;justify-content:center;width:30px;height:30px;background:linear-gradient(145deg,#5cb885,#3da06a);border-radius:8px;color:#fff;font-size:16px;box-shadow:0 4px 12px rgba(60,180,110,0.2)}
+        .header h1 span{background:rgba(60,180,110,0.12);font-size:11px;font-weight:400;color:#2a6b47;padding:2px 12px;border-radius:40px;border:1px solid rgba(60,180,110,0.08)}
+        .header-actions{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+        .btn{background:0 0;border:none;padding:6px 16px;border-radius:40px;font-size:12px;font-weight:500;cursor:pointer;transition:.2s;display:inline-flex;align-items:center;gap:5px}
+        .btn-primary{background:linear-gradient(145deg,#4caf7a,#3a9a65);color:#fff;box-shadow:0 4px 14px rgba(60,180,110,0.2)}
+        .btn-primary:hover{transform:translateY(-2px);box-shadow:0 8px 24px rgba(60,180,110,0.3)}
+        .btn-primary:active{transform:scale(.96)}
+        .btn-outline{background:rgba(60,180,110,0.06);border:1px solid rgba(60,180,110,0.15);color:#2a6b47}
+        .btn-outline:hover{background:rgba(60,180,110,0.12)}
+        .btn-danger{background:rgba(220,80,80,0.06);border:1px solid rgba(220,80,80,0.12);color:#b34a4a}
+        .btn-danger:hover{background:rgba(220,80,80,0.12)}
+        .sync-badge{font-size:10px;padding:3px 12px;border-radius:40px;background:rgba(60,180,110,0.10);color:#2a6b47;border:1px solid rgba(60,180,110,0.08);display:inline-flex;align-items:center;gap:5px}
+        .sync-badge .dot{display:inline-block;width:6px;height:6px;border-radius:50%;background:#3a9a65}
+        .sync-badge .dot.syncing{background:#f59e0b;animation:pulse 1s infinite}
+        .sync-badge .dot.error{background:#ef4444}
+        .sync-badge .dot.offline{background:#9ca3af}
+        @keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+        .api-bar{display:flex;gap:6px;padding:6px 24px;background:rgba(240,250,243,0.3);border-bottom:1px solid rgba(100,190,140,0.06);flex-wrap:wrap;align-items:center}
+        .api-bar input{flex:1;min-width:120px;padding:5px 12px;border:1px solid rgba(100,190,140,0.15);border-radius:10px;font-size:12px;outline:0;background:rgba(255,255,255,0.4);transition:.2s;font-family:inherit}
+        .api-bar input:focus{border-color:#3a9a65;background:rgba(255,255,255,0.7);box-shadow:0 0 0 3px rgba(60,180,110,0.06)}
+        .api-bar input::placeholder{color:rgba(0,0,0,0.25);font-size:11px}
+        .api-bar .api-status{font-size:10px;color:#5a8f72;padding:2px 10px;border-radius:20px;background:rgba(60,180,110,0.06)}
+        .api-bar .api-status.ready{color:#2a6b47;background:rgba(60,180,110,0.12)}
+        .api-bar .api-status.error{color:#b34a4a;background:rgba(220,80,80,0.08)}
+        .main{display:flex;flex-direction:row;min-height:380px;background:0 0}
+        .timeline{width:180px;background:rgba(240,250,243,0.3);border-right:1px solid rgba(100,190,140,0.08);padding:16px 12px;flex-shrink:0;overflow-y:auto;max-height:480px}
+        .timeline-title{font-size:11px;text-transform:uppercase;letter-spacing:.8px;color:#5a8f72;font-weight:600;margin-bottom:14px;padding-left:4px}
+        .timeline-item{display:flex;align-items:flex-start;gap:10px;margin-bottom:14px;padding:3px 8px 3px 4px;border-radius:12px;transition:.1s;cursor:default}
+        .timeline-item.active{background:rgba(60,180,110,0.08)}
+        .timeline-dot{width:8px;height:8px;background:#b8d9c8;border-radius:50%;margin-top:4px;flex-shrink:0;border:2px solid #fff;box-shadow:0 0 0 1px #b8d9c8;transition:.15s}
+        .timeline-item.active .timeline-dot{background:#3a9a65;box-shadow:0 0 0 2px #3a9a65}
+        .timeline-content{display:flex;flex-direction:column}
+        .timeline-date{font-size:11px;font-weight:500;color:#1f4a33;line-height:1.3}
+        .timeline-time{font-size:10px;color:#6d9f82}
+        .list-area{flex:1;padding:16px 24px 24px;background:0 0;overflow-y:auto;max-height:480px}
+        .list-header{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:14px;flex-wrap:wrap;gap:6px}
+        .list-header h2{font-size:15px;font-weight:500;color:#1f4a33}
+        .list-header .count{font-size:11px;color:#5a8f72;background:rgba(60,180,110,0.08);padding:2px 12px;border-radius:30px;border:1px solid rgba(60,180,110,0.06)}
+        .entry-card{background:rgba(255,255,255,0.5);backdrop-filter:blur(4px);border:1px solid rgba(100,190,140,0.12);border-radius:18px;padding:14px 20px;margin-bottom:10px;transition:all .2s;cursor:pointer;box-shadow:0 2px 8px rgba(60,140,100,0.02)}
+        .entry-card:hover{border-color:rgba(60,180,110,0.3);background:rgba(255,255,255,0.7);transform:translateY(-2px);box-shadow:0 12px 32px rgba(60,140,100,0.06)}
+        .entry-card .title{font-size:16px;font-weight:600;color:#1f4a33;display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+        .entry-card .title .tags{display:flex;gap:4px;flex-wrap:wrap}
+        .entry-card .title .tag{font-size:9px;background:rgba(60,180,110,0.10);color:#2a6b47;padding:1px 8px;border-radius:20px;font-weight:400;border:1px solid rgba(60,180,110,0.06)}
+        .entry-card .preview{margin-top:4px;font-size:13px;color:#3a6b55;line-height:1.5;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+        .entry-card .meta{margin-top:8px;display:flex;justify-content:space-between;align-items:center;font-size:10px;color:#6d9f82;border-top:1px solid rgba(100,190,140,0.06);padding-top:8px;flex-wrap:wrap;gap:4px}
+        .entry-card .meta .summary-badge{background:rgba(60,180,110,0.08);padding:2px 10px;border-radius:40px;color:#2a6b47;font-weight:450;border:1px solid rgba(60,180,110,0.06);font-size:9px}
+        .entry-card .meta .summary-badge.loading{background:rgba(245,158,11,0.08);color:#b45309;border-color:rgba(245,158,11,0.1)}
+        .entry-card .meta .summary-badge.error{background:rgba(220,80,80,0.08);color:#b34a4a;border-color:rgba(220,80,80,0.08)}
+        .detail-overlay{position:fixed;inset:0;background:rgba(30,70,50,0.2);backdrop-filter:blur(6px);display:none;align-items:center;justify-content:center;z-index:1000;padding:16px}
+        .detail-overlay.open{display:flex}
+        .detail-panel{background:rgba(255,255,255,0.95);backdrop-filter:blur(16px);max-width:720px;width:100%;border-radius:28px;padding:24px 28px;box-shadow:0 40px 80px rgba(30,80,55,0.12);animation:slideUp .25s ease;max-height:92vh;overflow-y:auto;border:1px solid rgba(100,190,140,0.12)}
+        @keyframes slideUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
+        .detail-panel .close-btn{float:right;background:0 0;border:none;font-size:20px;color:#6d9f82;cursor:pointer;padding:2px 6px;border-radius:40px;transition:.1s}
+        .detail-panel .close-btn:hover{background:rgba(60,180,110,0.06);color:#1f4a33}
+        .detail-panel .detail-title-input{font-size:22px;font-weight:600;margin:4px 0 10px;color:#1f4a33;width:100%;border:none;background:0 0;outline:0;border-bottom:2px solid transparent;padding:4px 0;transition:.2s;font-family:inherit}
+        .detail-panel .detail-title-input:focus{border-bottom-color:#3a9a65}
+        .detail-panel .detail-tags-section{display:flex;flex-wrap:wrap;gap:5px;margin:6px 0 12px;align-items:center}
+        .detail-panel .detail-tags-section .tag-item{font-size:11px;background:rgba(60,180,110,0.10);color:#2a6b47;padding:2px 10px;border-radius:20px;border:1px solid rgba(60,180,110,0.10);display:inline-flex;align-items:center;gap:4px}
+        .detail-panel .detail-tags-section .tag-item .del-tag{cursor:pointer;font-size:11px;color:#b34a4a;background:0 0;border:none;padding:0 2px}
+        .detail-panel .detail-tags-section .tag-item .del-tag:hover{color:#dc2626}
+        .detail-panel .detail-tags-section .add-tag-input{border:1px dashed rgba(60,180,110,0.2);border-radius:20px;padding:2px 10px;font-size:11px;background:0 0;outline:0;width:70px;transition:.2s;font-family:inherit}
+        .detail-panel .detail-tags-section .add-tag-input:focus{border-color:#3a9a65;width:110px;background:rgba(255,255,255,0.5)}
+        .detail-panel .detail-tags-section .add-tag-btn{background:rgba(60,180,110,0.08);border:none;border-radius:20px;padding:2px 8px;font-size:11px;color:#2a6b47;cursor:pointer;transition:.2s}
+        .detail-panel .detail-tags-section .add-tag-btn:hover{background:rgba(60,180,110,0.18)}
+        .detail-panel .detail-content-textarea{width:100%;padding:14px 18px;border:1px solid rgba(100,190,140,0.12);border-radius:14px;font-size:14px;line-height:1.6;color:#1f4a33;margin:10px 0 14px;resize:vertical;min-height:90px;font-family:inherit;background:rgba(240,250,243,0.3);transition:.2s;outline:0}
+        .detail-panel .detail-content-textarea:focus{border-color:#3a9a65;background:rgba(255,255,255,0.6);box-shadow:0 0 0 4px rgba(60,180,110,0.06)}
+        .detail-panel .detail-summary-box{background:rgba(60,180,110,0.05);padding:14px 18px;border-radius:14px;border-left:3px solid #3a9a65;margin:6px 0 14px}
+        .detail-panel .detail-summary-box .summary-label{font-size:11px;font-weight:500;color:#2a6b47;display:flex;justify-content:space-between;align-items:center}
+        .detail-panel .detail-summary-box .summary-label .regenerate-btn{font-size:10px;background:rgba(60,180,110,0.08);border:none;border-radius:20px;padding:2px 10px;color:#2a6b47;cursor:pointer;transition:.2s}
+        .detail-panel .detail-summary-box .summary-label .regenerate-btn:hover{background:rgba(60,180,110,0.18)}
+        .detail-panel .detail-summary-box .summary-label .regenerate-btn:disabled{opacity:.5;cursor:not-allowed}
+        .detail-panel .detail-summary-box .summary-text{font-size:14px;color:#1f4a33;line-height:1.5;margin-top:4px}
+        .detail-panel .detail-summary-box .summary-text.loading{color:#b45309;font-style:italic}
+        .detail-panel .detail-summary-box .summary-text.error{color:#b34a4a}
+        .detail-panel .detail-timestamp{font-size:11px;color:#6d9f82;margin-top:6px}
+        .detail-panel .detail-actions{display:flex;gap:8px;margin-top:14px;flex-wrap:wrap;border-top:1px solid rgba(100,190,140,0.06);padding-top:14px}
+        .detail-panel .detail-actions .btn{font-size:11px;padding:5px 14px}
+        .modal-overlay{position:fixed;inset:0;background:rgba(30,70,50,0.2);backdrop-filter:blur(6px);display:none;align-items:center;justify-content:center;z-index:2000;padding:16px}
+        .modal-overlay.open{display:flex}
+        .modal-box{background:rgba(255,255,255,0.95);backdrop-filter:blur(16px);border-radius:28px;max-width:560px;width:100%;padding:28px 32px;box-shadow:0 40px 80px rgba(30,80,55,0.12);animation:slideUp .25s ease;border:1px solid rgba(100,190,140,0.12)}
+        .modal-box h3{font-size:20px;font-weight:600;margin-bottom:20px;color:#1f4a33}
+        .modal-box label{display:block;font-size:13px;font-weight:500;color:#2a6b47;margin-bottom:4px;margin-top:14px}
+        .modal-box input,.modal-box textarea{width:100%;padding:12px 16px;border:1px solid rgba(100,190,140,0.15);border-radius:14px;font-size:14px;transition:.15s;background:rgba(255,255,255,0.5);font-family:inherit}
+        .modal-box input:focus,.modal-box textarea:focus{outline:0;border-color:#3a9a65;background:#fff;box-shadow:0 0 0 4px rgba(60,180,110,0.06)}
+        .modal-box textarea{min-height:100px;resize:vertical}
+        .modal-box .modal-tags-section{display:flex;flex-wrap:wrap;gap:4px;margin-top:4px;align-items:center}
+        .modal-box .modal-tags-section .tag-pill{font-size:11px;background:rgba(60,180,110,0.10);color:#2a6b47;padding:2px 10px;border-radius:20px;border:1px solid rgba(60,180,110,0.08);display:inline-flex;align-items:center;gap:4px}
+        .modal-box .modal-tags-section .tag-pill .remove-tag{cursor:pointer;font-size:10px;color:#b34a4a;background:0 0;border:none;padding:0 2px}
+        .modal-box .modal-tags-section .tag-input{border:1px dashed rgba(60,180,110,0.2);border-radius:20px;padding:2px 10px;font-size:11px;background:0 0;outline:0;width:60px;transition:.2s;font-family:inherit}
+        .modal-box .modal-tags-section .tag-input:focus{border-color:#3a9a65;width:100px}
+        .modal-box .modal-tags-section .add-tag-btn{background:rgba(60,180,110,0.06);border:none;border-radius:20px;padding:2px 8px;font-size:11px;color:#2a6b47;cursor:pointer}
+        .modal-box .modal-tags-section .add-tag-btn:hover{background:rgba(60,180,110,0.14)}
+        .modal-actions{display:flex;justify-content:flex-end;gap:10px;margin-top:22px}
+        .empty-state{text-align:center;padding:50px 16px;color:#6d9f82}
+        .empty-state .big-icon{font-size:40px;margin-bottom:12px}
+        .toast{position:fixed;bottom:80px;left:50%;transform:translateX(-50%) scale(.9);background:rgba(0,0,0,0.7);backdrop-filter:blur(8px);color:#fff;padding:6px 18px;border-radius:12px;font-size:12px;z-index:9999;opacity:0;transition:all .4s cubic-bezier(.34,1.56,.64,1);pointer-events:none;white-space:nowrap;max-width:90%}
+        .toast.show{opacity:1;transform:translateX(-50%) scale(1)}
+        @media (max-width:768px){.main{flex-direction:column}.timeline{width:100%;border-right:0;border-bottom:1px solid rgba(100,190,140,0.08);max-height:100px;display:flex;flex-wrap:nowrap;gap:8px;padding:10px 14px;overflow-x:auto;background:rgba(240,250,243,0.2)}.timeline-title{display:none}.timeline-item{flex-shrink:0;margin-bottom:0;padding:3px 10px 3px 6px;background:rgba(255,255,255,0.3);border-radius:40px;border:1px solid rgba(100,190,140,0.06)}.timeline-item.active{background:rgba(60,180,110,0.08);border-color:#3a9a65}.timeline-dot{width:6px;height:6px;margin-top:4px}.timeline-date{font-size:10px}.timeline-time{font-size:9px}.header{padding:10px 16px}.header h1{font-size:16px}.list-area{padding:12px 16px 16px;max-height:420px}.detail-panel{padding:18px 20px}.modal-box{padding:20px 22px}.api-bar{padding:4px 16px}.api-bar input{min-width:80px;font-size:11px}}
+        @media (max-width:480px){body{padding:6px}.app{border-radius:24px}.header-actions .btn{font-size:11px;padding:4px 12px}.entry-card{padding:12px 16px}.entry-card .title{font-size:14px}.entry-card .preview{font-size:12px}.detail-panel .detail-title-input{font-size:18px}}
     </style>
 </head>
 <body>
-    <!-- ... HTML 结构同之前，但 closeDetail 按钮 ID 改为 closeDetailBtn ... -->
-    <!-- 为节省篇幅，此处省略，实际使用请补全 -->
+
+    <div class="app">
+        <header class="header">
+            <h1>
+                <span class="icon-leaf">🌱</span>
+                灵感备忘录
+                <span>云端同步</span>
+            </h1>
+            <div class="header-actions">
+                <span class="sync-badge" id="syncBadge">
+                    <span class="dot" id="syncDot"></span>
+                    <span id="syncText">已同步</span>
+                </span>
+                <button class="btn btn-primary" id="newEntryBtn">＋ 新记录</button>
+                <button class="btn btn-outline" id="syncBtn">⟳ 同步</button>
+            </div>
+        </header>
+
+        <div class="api-bar">
+            <input type="password" id="apiKeyInput" placeholder="输入 DeepSeek API Key (sk-...)" />
+            <button class="btn btn-outline" id="saveKeyBtn" style="padding:4px 14px;font-size:11px;">保存</button>
+            <span class="api-status" id="apiStatus">⚪ 未配置</span>
+        </div>
+
+        <div class="main">
+            <div class="timeline" id="timelineContainer">
+                <div class="timeline-title">⏳ 时间轴</div>
+            </div>
+            <div class="list-area" id="listArea">
+                <div class="list-header">
+                    <h2>🌿 所有灵感</h2>
+                    <span class="count" id="entryCount">0 条</span>
+                </div>
+                <div id="entryList"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== 详情弹窗 ===== -->
+    <div class="detail-overlay" id="detailOverlay">
+        <div class="detail-panel">
+            <!-- ★★★ 关键修复：ID 改为 closeDetailBtn ★★★ -->
+            <button class="close-btn" id="closeDetailBtn">✕</button>
+            <input class="detail-title-input" id="detailTitleInput" placeholder="输入标题..." />
+            <div class="detail-tags-section" id="detailTagsSection"></div>
+            <textarea class="detail-content-textarea" id="detailContentTextarea" placeholder="输入内容..."></textarea>
+            <div class="detail-summary-box">
+                <div class="summary-label">
+                    <span>🧠 AI 总结</span>
+                    <button class="regenerate-btn" id="regenerateSummaryBtn">⟳ 重新生成</button>
+                </div>
+                <div class="summary-text" id="detailSummaryText">点击「重新生成」或保存时自动生成</div>
+            </div>
+            <div class="detail-timestamp" id="detailTimestamp"></div>
+            <div class="detail-actions">
+                <button class="btn btn-primary" id="saveDetailBtn">💾 保存</button>
+                <button class="btn btn-danger" id="deleteDetailBtn">🗑️ 删除</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== 新建记录弹窗 ===== -->
+    <div class="modal-overlay" id="modalOverlay">
+        <div class="modal-box">
+            <h3>✍️ 记录灵感</h3>
+            <label>标题</label>
+            <input type="text" id="inputTitle" placeholder="给灵感起个标题…" />
+            <label>标签</label>
+            <div class="modal-tags-section" id="modalTagsSection">
+                <input class="tag-input" id="modalTagInput" placeholder="添加标签" />
+                <button class="add-tag-btn" id="modalAddTagBtn">＋ 添加</button>
+            </div>
+            <label>内容</label>
+            <textarea id="inputContent" placeholder="写下你突如其来的想法…"></textarea>
+            <div class="modal-actions">
+                <button class="btn btn-outline" id="cancelModalBtn">取消</button>
+                <button class="btn btn-primary" id="saveEntryBtn">💾 保存并生成总结</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="toast" id="toast"></div>
+
     <script>
         // ============================================================
         //  配置
@@ -49,7 +231,7 @@
         var timelineContainer = document.getElementById('timelineContainer');
         var toast = document.getElementById('toast');
 
-        // 详情 - 注意：关闭按钮 ID 改为 closeDetailBtn
+        // ★★★ 详情 - 使用正确的 ID ★★★
         var detailOverlay = document.getElementById('detailOverlay');
         var closeDetailBtn = document.getElementById('closeDetailBtn');
         var detailTitleInput = document.getElementById('detailTitleInput');
@@ -512,7 +694,6 @@
             showToast('已移除标签');
         }
 
-        // ★★★ 核心修复：关闭详情弹窗 ★★★
         function closeDetail() {
             detailOverlay.classList.remove('open');
             currentEditId = null;
@@ -555,29 +736,19 @@
             showToast('✅ 已保存');
         }
 
-        // ★★★ 核心修复：删除后自动关闭弹窗并刷新 ★★★
         async function deleteDetail() {
             if (!confirm('确定删除这条记录吗？')) return;
 
-            // 删除记录
             var newEntries = [];
             for (var i = 0; i < entries.length; i++) {
                 if (entries[i].id !== currentEditId) newEntries.push(entries[i]);
             }
             entries = newEntries;
 
-            // 保存本地
             saveLocalData();
-
-            // ★★★ 关键：先关闭弹窗，再刷新列表 ★★★
             closeDetail();
-
-            // 刷新界面
             render();
-
-            // 同步云端
             if (isCloudReady) syncToCloud(entries);
-
             showToast('✅ 已删除');
         }
 
@@ -877,7 +1048,7 @@
             }
         });
 
-        // ★★★ 修复：关闭按钮使用正确的函数 ★★★
+        // ★★★ 关键：使用正确的变量 closeDetailBtn ★★★
         closeDetailBtn.addEventListener('click', closeDetail);
         detailOverlay.addEventListener('click', function(e) {
             if (e.target === this) closeDetail();
