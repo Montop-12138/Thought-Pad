@@ -5,8 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
   <title>故事织机 · 云端同步版</title>
   
-  <!-- 引入腾讯云开发 SDK -->
-  <script src="https://imgcache.qq.com/qcloud/cloudbase-js-sdk/1.7.0/cloudbase.full.js"></script>
+  <!-- 使用正确的腾讯云 SDK CDN -->
+  <script src="https://static.cloudbase.net/cloudbase-js-sdk/2.28.6/cloudbase.full.js"></script>
   
   <style>
     * {
@@ -454,12 +454,39 @@
     const CLOUD_ENV_ID = 'deepseek-chat-d5gg0748z3b9dfe24';
     const CLOUD_COLLECTION = 'story_weaver_entries';
     
+    // ========== 检查 SDK 是否加载 ==========
+    console.log('🔍 检查 cloudbase SDK...');
+    console.log('typeof cloudbase:', typeof cloudbase);
+    
+    if (typeof cloudbase === 'undefined') {
+      console.error('❌ 腾讯云 SDK 加载失败');
+      document.getElementById('cloudStatusText').textContent = '❌ SDK 加载失败，请刷新重试';
+      document.getElementById('cloudDot').style.background = '#c04040';
+    }
+    
     // ========== 初始化云开发 ==========
-    const app = cloudbase.init({
-      env: CLOUD_ENV_ID
-    });
-    const db = app.database();
-    const collection = db.collection(CLOUD_COLLECTION);
+    let db, collection;
+    let cloudInitialized = false;
+    
+    try {
+      if (typeof cloudbase !== 'undefined') {
+        const app = cloudbase.init({
+          env: CLOUD_ENV_ID
+        });
+        db = app.database();
+        collection = db.collection(CLOUD_COLLECTION);
+        cloudInitialized = true;
+        console.log('✅ 腾讯云初始化成功');
+        document.getElementById('cloudStatusText').textContent = '☁️ 云端已就绪';
+        document.getElementById('cloudDot').style.background = '#5f7a5f';
+      } else {
+        console.warn('⚠️ cloudbase 未定义');
+      }
+    } catch (err) {
+      console.error('❌ 腾讯云初始化失败:', err);
+      document.getElementById('cloudStatusText').textContent = '❌ 初始化失败';
+      document.getElementById('cloudDot').style.background = '#c04040';
+    }
 
     // ========== 状态 ==========
     const STAGES = ['hook', 'world', 'character', 'conflict', 'structure'];
@@ -574,11 +601,18 @@
       state.messages.push({ role, content, time: Date.now() });
       saveState();
       renderMessages();
-      autoSyncToCloud();
+      if (cloudInitialized) {
+        autoSyncToCloud();
+      }
     }
 
     // ========== 云端操作 ==========
     async function loadFromCloud() {
+      if (!cloudInitialized) {
+        cloudStatusText.textContent = '⚠️ 云端未初始化';
+        cloudDot.style.background = '#f0c040';
+        return;
+      }
       if (!state.userId) {
         cloudStatusText.textContent = '请先设置用户ID';
         cloudDot.style.background = '#b0a090';
@@ -622,6 +656,12 @@
     }
 
     async function saveToCloud() {
+      if (!cloudInitialized) {
+        cloudStatusText.textContent = '⚠️ 云端未初始化';
+        cloudDot.style.background = '#f0c040';
+        alert('腾讯云 SDK 未加载，请检查网络连接后刷新页面');
+        return;
+      }
       if (!state.userId) {
         alert('请先设置用户ID');
         return;
@@ -665,6 +705,7 @@
     }
 
     async function createCloudDoc() {
+      if (!cloudInitialized) return;
       try {
         const data = {
           userId: state.userId,
@@ -691,7 +732,7 @@
 
     let syncTimeout = null;
     function autoSyncToCloud() {
-      if (!state.userId) return;
+      if (!cloudInitialized || !state.userId) return;
       clearTimeout(syncTimeout);
       syncTimeout = setTimeout(() => {
         saveToCloud();
@@ -822,16 +863,11 @@
         apiStatusText.textContent = '未配置密钥';
       }
       
-      if (state.userId) {
-        cloudStatusText.textContent = state.cloudDocId ? '☁️ 云端已关联' : '☁️ 未同步到云端';
-        cloudDot.style.background = state.cloudDocId ? '#5f7a5f' : '#f0c040';
-      }
-      
       renderMessages();
       updateDraft();
       updateProgress();
       
-      if (state.userId) {
+      if (state.userId && cloudInitialized) {
         setTimeout(loadFromCloud, 500);
       }
     }
@@ -855,7 +891,9 @@
       if (id) {
         state.userId = id;
         saveState();
-        setTimeout(loadFromCloud, 300);
+        if (cloudInitialized) {
+          setTimeout(loadFromCloud, 300);
+        }
       }
     });
 
