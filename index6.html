@@ -1,0 +1,934 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
+  <title>故事织机 · 云端同步版</title>
+  
+  <!-- 引入腾讯云开发 SDK -->
+  <script src="https://imgcache.qq.com/qcloud/cloudbase-js-sdk/1.7.0/cloudbase.full.js"></script>
+  
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      background: #e8ddd0;
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      padding: 1.5rem 1rem;
+      font-family: 'Georgia', 'Times New Roman', serif;
+      background-image: 
+        radial-gradient(ellipse at 20% 30%, rgba(200, 180, 160, 0.2) 0%, transparent 60%),
+        radial-gradient(ellipse at 80% 70%, rgba(180, 160, 140, 0.15) 0%, transparent 50%),
+        repeating-linear-gradient(45deg, rgba(180, 160, 140, 0.02) 0px, rgba(180, 160, 140, 0.02) 2px, transparent 2px, transparent 6px);
+    }
+
+    .story-loom {
+      max-width: 820px;
+      width: 100%;
+      background: #faf6f0;
+      background-image: 
+        linear-gradient(0deg, rgba(215, 195, 175, 0.1) 0%, transparent 20%, transparent 80%, rgba(215, 195, 175, 0.1) 100%),
+        repeating-linear-gradient(45deg, rgba(180, 160, 140, 0.03) 0px, rgba(180, 160, 140, 0.03) 2px, transparent 2px, transparent 6px);
+      box-shadow: 0 12px 30px rgba(60, 40, 20, 0.2), inset 0 1px 4px rgba(255, 245, 235, 0.8);
+      border-radius: 6px 6px 20px 20px;
+      padding: 2rem 1.8rem 2.5rem;
+      position: relative;
+      transition: all 0.2s ease;
+      border: 1px solid #d9c8b2;
+    }
+
+    .story-loom::before {
+      content: '';
+      position: absolute;
+      top: 10px;
+      left: 20px;
+      right: 20px;
+      height: 2px;
+      background: linear-gradient(90deg, transparent, rgba(180, 150, 120, 0.15), transparent);
+      opacity: 0.4;
+    }
+
+    .status-bar {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 0.8rem;
+      color: #5a4a3a;
+      border-bottom: 1px dashed #d9c8b2;
+      padding-bottom: 0.6rem;
+      margin-bottom: 1.8rem;
+      letter-spacing: 0.03em;
+      gap: 0.5rem;
+    }
+    .status-item {
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+      background: rgba(220, 200, 180, 0.2);
+      padding: 0.2rem 0.8rem;
+      border-radius: 30px;
+      border: 1px solid #e6d7c6;
+      backdrop-filter: blur(2px);
+    }
+    .status-dot {
+      display: inline-block;
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #b0a090;
+    }
+    .status-dot.on {
+      background: #5f7a5f;
+      box-shadow: 0 0 6px #9bbf9b;
+    }
+    .api-config {
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+      flex-wrap: wrap;
+    }
+    .api-config input {
+      background: #fefcf8;
+      border: 1px solid #d9c8b2;
+      border-radius: 40px;
+      padding: 0.25rem 0.8rem;
+      font-size: 0.75rem;
+      font-family: inherit;
+      width: 140px;
+      color: #3a2c1b;
+      outline: none;
+      transition: 0.2s;
+    }
+    .api-config input:focus {
+      border-color: #b8a088;
+      box-shadow: 0 0 0 2px rgba(180, 150, 120, 0.2);
+    }
+    .api-config button {
+      background: transparent;
+      border: 1px solid #d9c8b2;
+      border-radius: 40px;
+      padding: 0.15rem 0.8rem;
+      font-size: 0.7rem;
+      cursor: pointer;
+      color: #3a2c1b;
+      transition: 0.2s;
+      font-family: inherit;
+    }
+    .api-config button:hover {
+      background: #e6d7c6;
+    }
+
+    .inspiration-area {
+      margin-bottom: 2.2rem;
+    }
+    .inspiration-area textarea {
+      width: 100%;
+      background: #fefcf8;
+      border: 1px solid #d9c8b2;
+      border-radius: 12px;
+      padding: 1.2rem 1.4rem;
+      font-family: 'Georgia', serif;
+      font-size: 1rem;
+      color: #3a2c1b;
+      resize: vertical;
+      min-height: 80px;
+      line-height: 1.6;
+      box-shadow: inset 0 2px 6px rgba(100, 70, 40, 0.06);
+      transition: 0.2s;
+      outline: none;
+    }
+    .inspiration-area textarea:focus {
+      border-color: #b8a088;
+      box-shadow: inset 0 2px 8px rgba(100, 70, 40, 0.08), 0 0 0 3px rgba(200, 175, 150, 0.15);
+    }
+    .inspiration-area textarea::placeholder {
+      color: #b8a898;
+      font-style: italic;
+    }
+    .btn-group {
+      display: flex;
+      justify-content: flex-end;
+      margin-top: 0.8rem;
+      gap: 0.8rem;
+      flex-wrap: wrap;
+    }
+    .btn {
+      background: #f5efe6;
+      border: 1px solid #d9c8b2;
+      padding: 0.5rem 1.8rem;
+      border-radius: 60px;
+      font-family: 'Georgia', serif;
+      font-size: 0.9rem;
+      color: #3a2c1b;
+      cursor: pointer;
+      box-shadow: 0 2px 4px rgba(100, 70, 40, 0.08);
+      transition: all 0.2s ease;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      letter-spacing: 0.04em;
+    }
+    .btn-primary {
+      background: #e6d7c6;
+      border-color: #c0ab94;
+      box-shadow: 0 2px 6px rgba(130, 100, 70, 0.15);
+    }
+    .btn-primary:hover {
+      background: #dccbb8;
+      transform: translateY(-1px);
+      box-shadow: 0 4px 10px rgba(130, 100, 70, 0.2);
+    }
+    .btn:active {
+      transform: translateY(1px);
+      box-shadow: none;
+    }
+    .btn-icon {
+      font-size: 1.2rem;
+      line-height: 1;
+    }
+
+    .dialogue-area {
+      background: rgba(255, 248, 240, 0.6);
+      border-radius: 20px 20px 12px 12px;
+      padding: 1.4rem 0.8rem 0.2rem 0.8rem;
+      margin: 1.8rem 0 1.2rem;
+      border: 1px solid #e6d7c6;
+      max-height: 420px;
+      overflow-y: auto;
+      scroll-behavior: smooth;
+      box-shadow: inset 0 2px 10px rgba(140, 110, 80, 0.05);
+    }
+    .dialogue-area::-webkit-scrollbar {
+      width: 5px;
+    }
+    .dialogue-area::-webkit-scrollbar-track {
+      background: #ede5db;
+      border-radius: 20px;
+    }
+    .dialogue-area::-webkit-scrollbar-thumb {
+      background: #d9c8b2;
+      border-radius: 20px;
+    }
+
+    .message {
+      display: flex;
+      margin-bottom: 1.2rem;
+      animation: fadeSlide 0.4s ease;
+    }
+    .message-ai {
+      justify-content: flex-start;
+    }
+    .message-user {
+      justify-content: flex-end;
+    }
+    .bubble {
+      max-width: 80%;
+      padding: 0.8rem 1.2rem;
+      border-radius: 24px 24px 6px 24px;
+      background: #f5efe6;
+      border: 1px solid #e6d7c6;
+      color: #3a2c1b;
+      font-size: 0.95rem;
+      line-height: 1.6;
+      box-shadow: 0 2px 4px rgba(100, 70, 40, 0.06);
+      position: relative;
+      word-break: break-word;
+    }
+    .message-user .bubble {
+      background: #e6d7c6;
+      border-color: #d0bca8;
+      border-radius: 24px 24px 24px 6px;
+    }
+    .bubble small {
+      display: block;
+      font-size: 0.65rem;
+      opacity: 0.7;
+      margin-top: 0.4rem;
+      text-align: right;
+      font-style: italic;
+    }
+    .msg-label {
+      font-size: 0.7rem;
+      font-weight: bold;
+      letter-spacing: 0.04em;
+      color: #7a6a5a;
+      margin-bottom: 0.2rem;
+    }
+
+    .framework-area {
+      background: #f5efe6;
+      border-radius: 20px;
+      padding: 1.2rem 1.4rem;
+      margin: 1.8rem 0 1.2rem;
+      border: 1px solid #d9c8b2;
+      box-shadow: inset 0 1px 8px rgba(160, 130, 100, 0.08);
+    }
+    .framework-title {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 0.8rem;
+      flex-wrap: wrap;
+    }
+    .framework-title h4 {
+      font-weight: normal;
+      letter-spacing: 0.06em;
+      color: #4a3a2a;
+      font-size: 1rem;
+    }
+    .progress-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.6rem 1.2rem;
+    }
+    .progress-item {
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+      font-size: 0.8rem;
+      color: #4a3a2a;
+    }
+    .progress-track {
+      flex: 1;
+      height: 6px;
+      background: #e6d7c6;
+      border-radius: 20px;
+      overflow: hidden;
+    }
+    .progress-fill {
+      height: 100%;
+      width: 0%;
+      background: #b8a088;
+      border-radius: 20px;
+      transition: width 0.4s ease;
+    }
+    .framework-draft {
+      margin-top: 0.8rem;
+      background: #fefcf8;
+      padding: 0.8rem 1rem;
+      border-radius: 12px;
+      font-size: 0.85rem;
+      line-height: 1.6;
+      white-space: pre-wrap;
+      max-height: 180px;
+      overflow-y: auto;
+      border: 1px dashed #d9c8b2;
+      color: #3a2c1b;
+    }
+    .export-group {
+      display: flex;
+      gap: 0.6rem;
+      justify-content: flex-end;
+      margin-top: 0.6rem;
+      flex-wrap: wrap;
+    }
+    .btn-small {
+      padding: 0.25rem 1.2rem;
+      font-size: 0.75rem;
+      background: #faf6f0;
+      border: 1px solid #d9c8b2;
+      border-radius: 40px;
+      cursor: pointer;
+      color: #3a2c1b;
+      transition: 0.15s;
+      font-family: inherit;
+    }
+    .btn-small:hover {
+      background: #e6d7c6;
+    }
+
+    .user-id-area {
+      margin-bottom: 1rem;
+      display: flex;
+      gap: 0.5rem;
+      align-items: center;
+      flex-wrap: wrap;
+      background: rgba(220, 200, 180, 0.2);
+      padding: 0.5rem 1rem;
+      border-radius: 12px;
+      border: 1px solid #d9c8b2;
+    }
+    .user-id-area label {
+      font-size: 0.85rem;
+      color: #4a3a2a;
+    }
+    .user-id-area input {
+      flex: 1;
+      background: #fefcf8;
+      border: 1px solid #d9c8b2;
+      border-radius: 40px;
+      padding: 0.3rem 1rem;
+      font-family: inherit;
+      font-size: 0.85rem;
+      outline: none;
+      min-width: 120px;
+    }
+    .user-id-area input:focus {
+      border-color: #b8a088;
+    }
+
+    @keyframes fadeSlide {
+      0% { opacity: 0; transform: translateY(12px); }
+      100% { opacity: 1; transform: translateY(0); }
+    }
+
+    @media (max-width: 600px) {
+      .story-loom { padding: 1.2rem 1rem; }
+      .status-bar { flex-direction: column; align-items: stretch; gap: 0.5rem; }
+      .api-config { flex-wrap: wrap; }
+      .api-config input { width: 100%; }
+      .progress-grid { grid-template-columns: 1fr; }
+      .bubble { max-width: 92%; }
+      .user-id-area { flex-direction: column; align-items: stretch; }
+    }
+  </style>
+</head>
+<body>
+<div class="story-loom" id="app">
+  <!-- 状态栏 -->
+  <div class="status-bar">
+    <div class="status-item">
+      <span class="status-dot" id="apiDot"></span>
+      <span id="apiStatusText">未配置密钥</span>
+    </div>
+    <div class="status-item">
+      <span class="status-dot" id="cloudDot" style="background:#b0a090;"></span>
+      <span id="cloudStatusText">云端未连接</span>
+    </div>
+    <div class="api-config">
+      <input type="text" id="apiKeyInput" placeholder="DeepSeek API Key" value="">
+      <button id="saveApiBtn">保存</button>
+    </div>
+  </div>
+
+  <!-- 用户ID输入 -->
+  <div class="user-id-area">
+    <label>👤 用户ID：</label>
+    <input type="text" id="userIdInput" placeholder="输入用户ID（多端同步识别）">
+    <button id="syncBtn" class="btn-small" style="background:#e6d7c6;">🔄 同步</button>
+    <button id="cloudSaveBtn" class="btn-small" style="background:#dccbb8;">☁️ 保存到云端</button>
+  </div>
+
+  <!-- 灵感输入区 -->
+  <div class="inspiration-area">
+    <textarea id="inspirationInput" placeholder="把您脑海里一闪而过的念头写在这里… 例如：一个在图书馆里发现会自己写字的笔的人。"></textarea>
+    <div class="btn-group">
+      <button class="btn btn-primary" id="startBtn"><span class="btn-icon">✉</span> 开始引导</button>
+      <button class="btn" id="clearBtn"><span class="btn-icon">⌫</span> 重置</button>
+    </div>
+  </div>
+
+  <!-- 对话区 -->
+  <div class="dialogue-area" id="dialogueBox"></div>
+
+  <!-- 框架汇总 -->
+  <div class="framework-area" id="frameworkArea">
+    <div class="framework-title">
+      <h4>📜 故事框架草稿</h4>
+      <span style="font-size:0.7rem; color:#7a6a5a;">进度</span>
+    </div>
+    <div class="progress-grid" id="progressGrid">
+      <div class="progress-item"><span>世界观</span><div class="progress-track"><div class="progress-fill" id="progWorld" style="width:0%"></div></div></div>
+      <div class="progress-item"><span>人物</span><div class="progress-track"><div class="progress-fill" id="progChar" style="width:0%"></div></div></div>
+      <div class="progress-item"><span>冲突</span><div class="progress-track"><div class="progress-fill" id="progConflict" style="width:0%"></div></div></div>
+      <div class="progress-item"><span>结构</span><div class="progress-track"><div class="progress-fill" id="progStruct" style="width:0%"></div></div></div>
+    </div>
+    <div class="framework-draft" id="frameworkDraft">✨ 灵感尚未开始，写下你的火花吧。</div>
+    <div class="export-group">
+      <button class="btn-small" id="exportMd">📄 导出 Markdown</button>
+      <button class="btn-small" id="exportTxt">📃 导出 TXT</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  (function() {
+    // ========== 腾讯云开发配置 ==========
+    const CLOUD_ENV_ID = 'deepseek-chat-d5gg0748z3b9dfe24';
+    const CLOUD_COLLECTION = 'story_weaver_entries';
+    
+    // ========== 初始化云开发 ==========
+    const app = cloudbase.init({
+      env: CLOUD_ENV_ID
+    });
+    const db = app.database();
+    const collection = db.collection(CLOUD_COLLECTION);
+
+    // ========== 状态 ==========
+    const STAGES = ['hook', 'world', 'character', 'conflict', 'structure'];
+    const stageQuestions = {
+      hook: '这个灵感最吸引你的地方是什么？',
+      world: '这个世界和现实世界最大的不同是什么？',
+      character: '你的主角是谁？ta 最想要什么？',
+      conflict: '这个故事的核心矛盾是什么？',
+      structure: '故事从哪里开始？在哪里结束？'
+    };
+
+    let state = {
+      apiKey: localStorage.getItem('storyLoom_apiKey') || '',
+      userId: localStorage.getItem('storyLoom_userId') || '',
+      inspiration: localStorage.getItem('storyLoom_inspiration') || '',
+      messages: JSON.parse(localStorage.getItem('storyLoom_messages') || '[]'),
+      currentStage: localStorage.getItem('storyLoom_currentStage') || null,
+      summary: { world: '', char: '', conflict: '', struct: '' },
+      cloudDocId: localStorage.getItem('storyLoom_cloudDocId') || null,
+      lastSyncTime: localStorage.getItem('storyLoom_lastSyncTime') || null
+    };
+
+    // ========== DOM引用 ==========
+    const apiInput = document.getElementById('apiKeyInput');
+    const userIdInput = document.getElementById('userIdInput');
+    const apiDot = document.getElementById('apiDot');
+    const apiStatusText = document.getElementById('apiStatusText');
+    const cloudDot = document.getElementById('cloudDot');
+    const cloudStatusText = document.getElementById('cloudStatusText');
+    const inspirationInput = document.getElementById('inspirationInput');
+    const startBtn = document.getElementById('startBtn');
+    const clearBtn = document.getElementById('clearBtn');
+    const syncBtn = document.getElementById('syncBtn');
+    const cloudSaveBtn = document.getElementById('cloudSaveBtn');
+    const dialogueBox = document.getElementById('dialogueBox');
+    const frameworkDraft = document.getElementById('frameworkDraft');
+    const progWorld = document.getElementById('progWorld');
+    const progChar = document.getElementById('progChar');
+    const progConflict = document.getElementById('progConflict');
+    const progStruct = document.getElementById('progStruct');
+
+    // ========== 辅助函数 ==========
+    function saveState() {
+      localStorage.setItem('storyLoom_apiKey', state.apiKey);
+      localStorage.setItem('storyLoom_userId', state.userId);
+      localStorage.setItem('storyLoom_inspiration', state.inspiration);
+      localStorage.setItem('storyLoom_messages', JSON.stringify(state.messages));
+      localStorage.setItem('storyLoom_currentStage', state.currentStage);
+      localStorage.setItem('storyLoom_summary', JSON.stringify(state.summary));
+      if (state.cloudDocId) {
+        localStorage.setItem('storyLoom_cloudDocId', state.cloudDocId);
+      }
+      if (state.lastSyncTime) {
+        localStorage.setItem('storyLoom_lastSyncTime', state.lastSyncTime);
+      }
+    }
+
+    function loadSummary() {
+      const raw = localStorage.getItem('storyLoom_summary');
+      if (raw) {
+        try { state.summary = JSON.parse(raw); } catch(e) { state.summary = { world: '', char: '', conflict: '', struct: '' }; }
+      }
+    }
+    loadSummary();
+
+    // ========== UI更新 ==========
+    function updateProgress() {
+      const s = state.summary;
+      const setWidth = (el, val) => { if (el) el.style.width = Math.min(100, val) + '%'; };
+      setWidth(progWorld, s.world ? 100 : 0);
+      setWidth(progChar, s.char ? 100 : 0);
+      setWidth(progConflict, s.conflict ? 100 : 0);
+      setWidth(progStruct, s.struct ? 100 : 0);
+    }
+
+    function updateDraft() {
+      const s = state.summary;
+      let parts = [];
+      if (state.inspiration) parts.push(`【灵感】${state.inspiration}`);
+      if (s.world) parts.push(`【世界观】${s.world}`);
+      if (s.char) parts.push(`【人物】${s.char}`);
+      if (s.conflict) parts.push(`【冲突】${s.conflict}`);
+      if (s.struct) parts.push(`【结构】${s.struct}`);
+      frameworkDraft.textContent = parts.length ? parts.join('\n') : '✨ 灵感尚未开始，写下你的火花吧。';
+      updateProgress();
+    }
+
+    function renderMessages() {
+      dialogueBox.innerHTML = '';
+      state.messages.forEach(msg => {
+        const div = document.createElement('div');
+        div.className = `message ${msg.role === 'user' ? 'message-user' : 'message-ai'}`;
+        const bubble = document.createElement('div');
+        bubble.className = 'bubble';
+        const label = document.createElement('div');
+        label.className = 'msg-label';
+        label.textContent = msg.role === 'user' ? '✍️ 你' : '📜 引导者';
+        const content = document.createElement('div');
+        content.textContent = msg.content;
+        const time = document.createElement('small');
+        time.textContent = new Date(msg.time || Date.now()).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' });
+        bubble.appendChild(label);
+        bubble.appendChild(content);
+        bubble.appendChild(time);
+        div.appendChild(bubble);
+        dialogueBox.appendChild(div);
+      });
+      dialogueBox.scrollTop = dialogueBox.scrollHeight;
+    }
+
+    function addMessage(role, content) {
+      state.messages.push({ role, content, time: Date.now() });
+      saveState();
+      renderMessages();
+      autoSyncToCloud();
+    }
+
+    // ========== 云端操作 ==========
+    async function loadFromCloud() {
+      if (!state.userId) {
+        cloudStatusText.textContent = '请先设置用户ID';
+        cloudDot.style.background = '#b0a090';
+        return;
+      }
+
+      try {
+        cloudStatusText.textContent = '正在从云端加载...';
+        cloudDot.style.background = '#f0c040';
+
+        const res = await collection.where({
+          userId: state.userId
+        }).get();
+
+        if (res.data && res.data.length > 0) {
+          const doc = res.data[0];
+          state.cloudDocId = doc._id;
+          
+          if (doc.inspiration) state.inspiration = doc.inspiration;
+          if (doc.messages) state.messages = doc.messages;
+          if (doc.currentStage) state.currentStage = doc.currentStage;
+          if (doc.summary) state.summary = doc.summary;
+          if (doc.lastSyncTime) state.lastSyncTime = doc.lastSyncTime;
+          
+          saveState();
+          updateUI();
+          
+          cloudStatusText.textContent = `✅ 云端已同步 (${new Date(doc.updatedAt || Date.now()).toLocaleString()})`;
+          cloudDot.style.background = '#5f7a5f';
+          console.log('从云端加载成功:', doc);
+        } else {
+          cloudStatusText.textContent = '☁️ 云端无数据，将创建新文档';
+          cloudDot.style.background = '#f0c040';
+          await createCloudDoc();
+        }
+      } catch (err) {
+        console.error('从云端加载失败:', err);
+        cloudStatusText.textContent = '❌ 加载失败: ' + err.message;
+        cloudDot.style.background = '#c04040';
+      }
+    }
+
+    async function saveToCloud() {
+      if (!state.userId) {
+        alert('请先设置用户ID');
+        return;
+      }
+
+      try {
+        cloudStatusText.textContent = '正在保存到云端...';
+        cloudDot.style.background = '#f0c040';
+
+        const data = {
+          userId: state.userId,
+          inspiration: state.inspiration,
+          messages: state.messages,
+          currentStage: state.currentStage,
+          summary: state.summary,
+          lastSyncTime: new Date().toISOString(),
+          updatedAt: new Date().toISOString()
+        };
+
+        let result;
+        if (state.cloudDocId) {
+          result = await collection.doc(state.cloudDocId).update(data);
+          console.log('更新云端文档成功:', result);
+        } else {
+          result = await collection.add(data);
+          state.cloudDocId = result.id;
+          localStorage.setItem('storyLoom_cloudDocId', state.cloudDocId);
+          console.log('创建云端文档成功:', result);
+        }
+
+        state.lastSyncTime = data.lastSyncTime;
+        saveState();
+        
+        cloudStatusText.textContent = `✅ 已保存到云端 (${new Date().toLocaleString()})`;
+        cloudDot.style.background = '#5f7a5f';
+      } catch (err) {
+        console.error('保存到云端失败:', err);
+        cloudStatusText.textContent = '❌ 保存失败: ' + err.message;
+        cloudDot.style.background = '#c04040';
+      }
+    }
+
+    async function createCloudDoc() {
+      try {
+        const data = {
+          userId: state.userId,
+          inspiration: state.inspiration || '',
+          messages: state.messages || [],
+          currentStage: state.currentStage || null,
+          summary: state.summary || { world: '', char: '', conflict: '', struct: '' },
+          lastSyncTime: new Date().toISOString(),
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString()
+        };
+        const result = await collection.add(data);
+        state.cloudDocId = result.id;
+        localStorage.setItem('storyLoom_cloudDocId', state.cloudDocId);
+        saveState();
+        cloudStatusText.textContent = '✅ 云端文档已创建';
+        cloudDot.style.background = '#5f7a5f';
+        return result;
+      } catch (err) {
+        console.error('创建云端文档失败:', err);
+        throw err;
+      }
+    }
+
+    let syncTimeout = null;
+    function autoSyncToCloud() {
+      if (!state.userId) return;
+      clearTimeout(syncTimeout);
+      syncTimeout = setTimeout(() => {
+        saveToCloud();
+      }, 3000);
+    }
+
+    // ========== UI更新函数 ==========
+    function updateUI() {
+      inspirationInput.value = state.inspiration;
+      renderMessages();
+      updateDraft();
+      updateProgress();
+    }
+
+    // ========== 业务逻辑 ==========
+    function resetAll() {
+      state.messages = [];
+      state.currentStage = null;
+      state.summary = { world: '', char: '', conflict: '', struct: '' };
+      state.inspiration = '';
+      inspirationInput.value = '';
+      saveState();
+      updateUI();
+    }
+
+    function startGuidance() {
+      const raw = inspirationInput.value.trim();
+      if (!raw) {
+        alert('请先写下一个灵感片段。');
+        return;
+      }
+      if (!state.apiKey) {
+        alert('请先配置 DeepSeek API Key');
+        return;
+      }
+      if (!state.userId) {
+        alert('请先设置用户ID（用于多端同步）');
+        return;
+      }
+
+      state.inspiration = raw;
+      state.messages = [];
+      state.currentStage = null;
+      state.summary = { world: '', char: '', conflict: '', struct: '' };
+      saveState();
+      
+      addMessage('user', `灵感：${raw}`);
+      state.currentStage = 'hook';
+      saveState();
+      addMessage('ai', stageQuestions.hook);
+      inspirationInput.value = '';
+      updateUI();
+    }
+
+    function processUserAnswer(answer) {
+      if (!answer.trim()) return;
+      addMessage('user', answer);
+      
+      if (state.currentStage) {
+        const keyMap = { world: 'world', character: 'char', conflict: 'conflict', structure: 'struct' };
+        const key = keyMap[state.currentStage];
+        if (key && state.summary.hasOwnProperty(key)) {
+          state.summary[key] = answer.trim();
+          saveState();
+          updateDraft();
+        }
+      }
+      
+      const idx = STAGES.indexOf(state.currentStage);
+      let nextStage = null;
+      if (idx !== -1 && idx < STAGES.length - 1) {
+        nextStage = STAGES[idx + 1];
+      } else if (idx === -1) {
+        nextStage = 'hook';
+      }
+      
+      if (nextStage) {
+        state.currentStage = nextStage;
+        saveState();
+        addMessage('ai', stageQuestions[nextStage]);
+      } else {
+        state.currentStage = 'completed';
+        saveState();
+        addMessage('ai', '🎉 故事框架已初具雏形！您可以继续润色，或导出草稿。');
+      }
+    }
+
+    // ========== 导出功能 ==========
+    function exportContent(format) {
+      let content = '# 故事织机 · 框架草稿\n\n';
+      content += `## 灵感\n${state.inspiration || '（未记录）'}\n\n`;
+      content += `## 用户ID\n${state.userId || '（未设置）'}\n\n`;
+      content += `## 最后同步\n${state.lastSyncTime || '（未同步）'}\n\n`;
+      content += '## 引导问答\n';
+      state.messages.forEach(m => {
+        const role = m.role === 'user' ? '你' : '引导者';
+        content += `**${role}**：${m.content}\n\n`;
+      });
+      content += '## 汇总框架\n';
+      const s = state.summary;
+      content += `- 世界观：${s.world || '待完善'}\n`;
+      content += `- 人物：${s.char || '待完善'}\n`;
+      content += `- 冲突：${s.conflict || '待完善'}\n`;
+      content += `- 结构：${s.struct || '待完善'}\n`;
+
+      const blob = new Blob([content], { type: format === 'md' ? 'text/markdown' : 'text/plain' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `故事框架_${state.userId || 'default'}.${format === 'md' ? 'md' : 'txt'}`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    }
+
+    // ========== 初始化 ==========
+    function initUI() {
+      apiInput.value = state.apiKey;
+      userIdInput.value = state.userId;
+      inspirationInput.value = state.inspiration;
+      
+      if (state.apiKey) {
+        apiDot.className = 'status-dot on';
+        apiStatusText.textContent = '已配置密钥';
+      } else {
+        apiDot.className = 'status-dot';
+        apiStatusText.textContent = '未配置密钥';
+      }
+      
+      if (state.userId) {
+        cloudStatusText.textContent = state.cloudDocId ? '☁️ 云端已关联' : '☁️ 未同步到云端';
+        cloudDot.style.background = state.cloudDocId ? '#5f7a5f' : '#f0c040';
+      }
+      
+      renderMessages();
+      updateDraft();
+      updateProgress();
+      
+      if (state.userId) {
+        setTimeout(loadFromCloud, 500);
+      }
+    }
+
+    // ========== 事件绑定 ==========
+    document.getElementById('saveApiBtn').addEventListener('click', function() {
+      const key = apiInput.value.trim();
+      state.apiKey = key;
+      saveState();
+      if (key) {
+        apiDot.className = 'status-dot on';
+        apiStatusText.textContent = '已配置密钥';
+      } else {
+        apiDot.className = 'status-dot';
+        apiStatusText.textContent = '未配置密钥';
+      }
+    });
+
+    userIdInput.addEventListener('change', function() {
+      const id = this.value.trim();
+      if (id) {
+        state.userId = id;
+        saveState();
+        setTimeout(loadFromCloud, 300);
+      }
+    });
+
+    syncBtn.addEventListener('click', function() {
+      if (!state.userId) {
+        alert('请先设置用户ID');
+        return;
+      }
+      loadFromCloud();
+    });
+
+    cloudSaveBtn.addEventListener('click', function() {
+      saveToCloud();
+    });
+
+    startBtn.addEventListener('click', startGuidance);
+
+    clearBtn.addEventListener('click', function() {
+      if (confirm('重置所有对话与进度？')) {
+        resetAll();
+      }
+    });
+
+    document.getElementById('exportMd').addEventListener('click', () => exportContent('md'));
+    document.getElementById('exportTxt').addEventListener('click', () => exportContent('txt'));
+
+    // 对话输入
+    const inputArea = document.createElement('div');
+    inputArea.style.display = 'flex';
+    inputArea.style.marginTop = '0.8rem';
+    inputArea.style.gap = '0.4rem';
+    const answerInput = document.createElement('input');
+    answerInput.type = 'text';
+    answerInput.placeholder = '回答引导者的问题…';
+    answerInput.style.flex = '1';
+    answerInput.style.background = '#fefcf8';
+    answerInput.style.border = '1px solid #d9c8b2';
+    answerInput.style.borderRadius = '40px';
+    answerInput.style.padding = '0.5rem 1.2rem';
+    answerInput.style.fontFamily = 'inherit';
+    answerInput.style.fontSize = '0.9rem';
+    answerInput.style.outline = 'none';
+    const sendBtn = document.createElement('button');
+    sendBtn.textContent = '✉ 发送';
+    sendBtn.className = 'btn-small';
+    sendBtn.style.padding = '0.4rem 1.2rem';
+    inputArea.appendChild(answerInput);
+    inputArea.appendChild(sendBtn);
+    dialogueBox.parentNode.insertBefore(inputArea, dialogueBox.nextSibling);
+
+    function handleAnswer() {
+      const val = answerInput.value.trim();
+      if (!val) return;
+      if (!state.currentStage || state.currentStage === 'completed') {
+        alert('请先点击 "开始引导" 开启新的故事框架。');
+        return;
+      }
+      processUserAnswer(val);
+      answerInput.value = '';
+    }
+
+    sendBtn.addEventListener('click', handleAnswer);
+    answerInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') handleAnswer();
+    });
+
+    // 启动
+    initUI();
+    
+    if (state.messages.length === 0 && !state.currentStage) {
+      addMessage('ai', '📖 欢迎来到故事织机。写下你的灵感，我将引导你构建完整的故事框架。');
+    }
+  })();
+</script>
+</body>
+</html>
