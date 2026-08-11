@@ -39,7 +39,6 @@
             transition: all 0.2s;
         }
 
-        /* ===== 头部 ===== */
         .header {
             display: flex;
             justify-content: space-between;
@@ -175,7 +174,6 @@
             }
         }
 
-        /* ===== API Key 栏 ===== */
         .api-bar {
             display: flex;
             gap: 6px;
@@ -223,7 +221,6 @@
             background: rgba(220, 80, 80, 0.08);
         }
 
-        /* ===== 主体 ===== */
         .main {
             display: flex;
             flex-direction: row;
@@ -231,7 +228,6 @@
             background: transparent;
         }
 
-        /* ===== 时间轴 ===== */
         .timeline {
             width: 180px;
             background: rgba(240, 250, 243, 0.3);
@@ -301,7 +297,6 @@
             color: #6d9f82;
         }
 
-        /* ===== 列表区域 ===== */
         .list-area {
             flex: 1;
             padding: 16px 24px 24px 24px;
@@ -423,7 +418,6 @@
             border-color: rgba(220, 80, 80, 0.08);
         }
 
-        /* ===== 详情弹窗 ===== */
         .detail-overlay {
             position: fixed;
             inset: 0;
@@ -654,7 +648,6 @@
             padding: 5px 14px;
         }
 
-        /* ===== 新建表单 ===== */
         .modal-overlay {
             position: fixed;
             inset: 0;
@@ -800,7 +793,6 @@
             margin-bottom: 12px;
         }
 
-        /* ===== Toast ===== */
         .toast {
             position: fixed;
             bottom: 80px;
@@ -824,7 +816,6 @@
             transform: translateX(-50%) scale(1);
         }
 
-        /* ===== 响应式 ===== */
         @media (max-width: 768px) {
             .main {
                 flex-direction: column;
@@ -1015,67 +1006,69 @@
         // ============================================================
         //  配置
         // ============================================================
-        const ENV_ID = 'deepseek-chat-d5gg0748z3b9dfe24';
-        const COLLECTION_NAME = 'inspiration_entries';
+        var ENV_ID = 'deepseek-chat-d5gg0748z3b9dfe24';
+        var COLLECTION_NAME = 'inspiration_entries';
 
         // ============================================================
         //  状态
         // ============================================================
-        let entries = [];
-        let currentEditId = null;
-        let tempTags = [];
-        let isCloudReady = false;
-        let isSyncing = false;
-        let isGeneratingSummary = false;
+        var entries = [];
+        var currentEditId = null;
+        var tempTags = [];
+        var isCloudReady = false;
+        var isSyncing = false;
+        var isGeneratingSummary = false;
 
         // ============================================================
         //  DOM 引用
         // ============================================================
-        const apiKeyInput = document.getElementById('apiKeyInput');
-        const saveKeyBtn = document.getElementById('saveKeyBtn');
-        const apiStatus = document.getElementById('apiStatus');
-        const syncBadge = document.getElementById('syncBadge');
-        const syncDot = document.getElementById('syncDot');
-        const syncText = document.getElementById('syncText');
-        const syncBtn = document.getElementById('syncBtn');
-        const newEntryBtn = document.getElementById('newEntryBtn');
-        const entryList = document.getElementById('entryList');
-        const entryCount = document.getElementById('entryCount');
-        const timelineContainer = document.getElementById('timelineContainer');
-        const toast = document.getElementById('toast');
+        var apiKeyInput = document.getElementById('apiKeyInput');
+        var saveKeyBtn = document.getElementById('saveKeyBtn');
+        var apiStatus = document.getElementById('apiStatus');
+        var syncBadge = document.getElementById('syncBadge');
+        var syncDot = document.getElementById('syncDot');
+        var syncText = document.getElementById('syncText');
+        var syncBtn = document.getElementById('syncBtn');
+        var newEntryBtn = document.getElementById('newEntryBtn');
+        var entryList = document.getElementById('entryList');
+        var entryCount = document.getElementById('entryCount');
+        var timelineContainer = document.getElementById('timelineContainer');
+        var toast = document.getElementById('toast');
 
         // 详情
-        const detailOverlay = document.getElementById('detailOverlay');
-        const closeDetail = document.getElementById('closeDetail');
-        const detailTitleInput = document.getElementById('detailTitleInput');
-        const detailTagsSection = document.getElementById('detailTagsSection');
-        const detailContentTextarea = document.getElementById('detailContentTextarea');
-        const detailSummaryText = document.getElementById('detailSummaryText');
-        const detailTimestamp = document.getElementById('detailTimestamp');
-        const saveDetailBtn = document.getElementById('saveDetailBtn');
-        const deleteDetailBtn = document.getElementById('deleteDetailBtn');
-        const regenerateSummaryBtn = document.getElementById('regenerateSummaryBtn');
+        var detailOverlay = document.getElementById('detailOverlay');
+        var closeDetail = document.getElementById('closeDetail');
+        var detailTitleInput = document.getElementById('detailTitleInput');
+        var detailTagsSection = document.getElementById('detailTagsSection');
+        var detailContentTextarea = document.getElementById('detailContentTextarea');
+        var detailSummaryText = document.getElementById('detailSummaryText');
+        var detailTimestamp = document.getElementById('detailTimestamp');
+        var saveDetailBtn = document.getElementById('saveDetailBtn');
+        var deleteDetailBtn = document.getElementById('deleteDetailBtn');
+        var regenerateSummaryBtn = document.getElementById('regenerateSummaryBtn');
 
         // 模态框
-        const modalOverlay = document.getElementById('modalOverlay');
-        const inputTitle = document.getElementById('inputTitle');
-        const inputContent = document.getElementById('inputContent');
-        const modalTagsSection = document.getElementById('modalTagsSection');
-        const modalTagInput = document.getElementById('modalTagInput');
-        const modalAddTagBtn = document.getElementById('modalAddTagBtn');
-        const cancelModalBtn = document.getElementById('cancelModalBtn');
-        const saveEntryBtn = document.getElementById('saveEntryBtn');
+        var modalOverlay = document.getElementById('modalOverlay');
+        var inputTitle = document.getElementById('inputTitle');
+        var inputContent = document.getElementById('inputContent');
+        var modalTagsSection = document.getElementById('modalTagsSection');
+        var modalTagInput = document.getElementById('modalTagInput');
+        var modalAddTagBtn = document.getElementById('modalAddTagBtn');
+        var cancelModalBtn = document.getElementById('cancelModalBtn');
+        var saveEntryBtn = document.getElementById('saveEntryBtn');
 
         // ============================================================
         //  Toast
         // ============================================================
-        let toastTimer = null;
+        var toastTimer = null;
 
         function showToast(msg) {
             toast.textContent = msg;
             toast.classList.add('show');
             clearTimeout(toastTimer);
-            toastTimer = setTimeout(() => toast.classList.remove('show'), 2500);
+            toastTimer = setTimeout(function() {
+                toast.classList.remove('show');
+            }, 2500);
         }
 
         // ============================================================
@@ -1096,8 +1089,8 @@
         // ============================================================
         //  腾讯云初始化
         // ============================================================
-        let cloudApp = null;
-        let cloudDb = null;
+        var cloudApp = null;
+        var cloudDb = null;
 
         async function initCloud() {
             try {
@@ -1108,8 +1101,8 @@
                     return false;
                 }
                 cloudApp = cloudbase.init({ env: ENV_ID });
-                const auth = cloudApp.auth();
-                const loginState = await auth.getLoginState();
+                var auth = cloudApp.auth();
+                var loginState = await auth.getLoginState();
                 if (!loginState) {
                     await auth.anonymousAuthProvider().signIn();
                 }
@@ -1133,21 +1126,23 @@
             if (!isCloudReady || !cloudDb) return null;
             try {
                 updateSyncStatus('syncing');
-                const res = await cloudDb.collection(COLLECTION_NAME)
+                var res = await cloudDb.collection(COLLECTION_NAME)
                     .orderBy('updateTime', 'desc')
                     .limit(500)
                     .get();
                 if (res.data && res.data.length > 0) {
-                    return res.data.map(item => ({
-                        id: item.id || item._id,
-                        title: item.title || '未命名',
-                        content: item.content || '',
-                        summary: item.summary || '',
-                        tags: item.tags || [],
-                        timestamp: item.timestamp || new Date().toISOString(),
-                        updateTime: item.updateTime || new Date().toISOString(),
-                        _cloudId: item._id
-                    }));
+                    return res.data.map(function(item) {
+                        return {
+                            id: item.id || item._id,
+                            title: item.title || '未命名',
+                            content: item.content || '',
+                            summary: item.summary || '',
+                            tags: item.tags || [],
+                            timestamp: item.timestamp || new Date().toISOString(),
+                            updateTime: item.updateTime || new Date().toISOString(),
+                            _cloudId: item._id
+                        };
+                    });
                 }
                 return [];
             } catch (e) {
@@ -1163,11 +1158,12 @@
             try {
                 isSyncing = true;
                 updateSyncStatus('syncing');
-                const collection = cloudDb.collection(COLLECTION_NAME);
-                const existing = await collection.limit(500).get();
-                const existingData = existing.data || [];
+                var collection = cloudDb.collection(COLLECTION_NAME);
+                var existing = await collection.limit(500).get();
+                var existingData = existing.data || [];
 
-                for (const item of existingData) {
+                for (var i = 0; i < existingData.length; i++) {
+                    var item = existingData[i];
                     if (item._id) {
                         try {
                             await collection.doc(item._id).remove();
@@ -1175,7 +1171,8 @@
                     }
                 }
 
-                for (const entry of entriesData) {
+                for (var j = 0; j < entriesData.length; j++) {
+                    var entry = entriesData[j];
                     await collection.add({
                         id: entry.id,
                         title: entry.title || '未命名',
@@ -1223,7 +1220,7 @@
         //  本地数据管理
         // ============================================================
         function loadLocalData() {
-            const stored = localStorage.getItem('inspiration_entries_cloud');
+            var stored = localStorage.getItem('inspiration_entries_cloud');
             if (stored) {
                 try {
                     entries = JSON.parse(stored);
@@ -1241,18 +1238,16 @@
         //  DeepSeek 总结生成
         // ============================================================
         async function generateSummary(content, title) {
-            const apiKey = getApiKey();
+            var apiKey = getApiKey();
             if (!apiKey) {
                 return { success: false, error: '请先配置 API Key' };
             }
 
-            const prompt = `请根据以下内容，生成一个简洁的总结（50字以内），只输出总结内容，不要加任何前缀：
-
-标题：${title || '未命名'}
-内容：${content}`;
+            var prompt = '请根据以下内容，生成一个简洁的总结（50字以内），只输出总结内容，不要加任何前缀：\n\n标题：' + (title ||
+                '未命名') + '\n内容：' + content;
 
             try {
-                const response = await fetch('https://api.deepseek.com/chat/completions', {
+                var response = await fetch('https://api.deepseek.com/chat/completions', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -1269,10 +1264,10 @@
                     })
                 });
 
-                const data = await response.json();
+                var data = await response.json();
 
                 if (!response.ok) {
-                    const errMsg = data.error ? data.error.message : '请求失败';
+                    var errMsg = data.error ? data.error.message : '请求失败';
                     if (response.status === 401 || response.status === 403) {
                         setApiKey('');
                         apiKeyInput.value = '';
@@ -1308,81 +1303,83 @@
         //  渲染
         // ============================================================
         function render() {
-            const sorted = [...entries].sort((a, b) => {
-                const timeA = new Date(a.timestamp || a.updateTime || 0).getTime();
-                const timeB = new Date(b.timestamp || b.updateTime || 0).getTime();
+            var sorted = [...entries].sort(function(a, b) {
+                var timeA = new Date(a.timestamp || a.updateTime || 0).getTime();
+                var timeB = new Date(b.timestamp || b.updateTime || 0).getTime();
                 return timeB - timeA;
             });
 
             // 列表
-            entryCount.textContent = `${entries.length} 条`;
+            entryCount.textContent = entries.length + ' 条';
 
             if (entries.length === 0) {
-                entryList.innerHTML = `
-                    <div class="empty-state">
-                        <div class="big-icon">🌱</div>
-                        <p>还没有灵感记录<br>点击「新记录」开始吧</p>
-                    </div>
-                `;
+                entryList.innerHTML =
+                    '<div class="empty-state"><div class="big-icon">🌱</div><p>还没有灵感记录<br>点击「新记录」开始吧</p></div>';
             } else {
-                entryList.innerHTML = sorted.map(entry => `
-                    <div class="entry-card" data-id="${entry.id}">
-                        <div class="title">
-                            💡 ${escapeHtml(entry.title || '未命名')}
-                            ${entry.tags && entry.tags.length > 0 ? `<span class="tags">${entry.tags.map(t => `<span class="tag">${escapeHtml(t)}</span>`).join('')}</span>` : ''}
-                        </div>
-                        <div class="preview">${escapeHtml(entry.content || '')}</div>
-                        <div class="meta">
-                            <span>${formatTime(entry.timestamp || entry.updateTime)}</span>
-                            <span class="summary-badge ${entry.summary ? '' : 'loading'}">${entry.summary ? '🧠 有总结' : '⏳ 待总结'}</span>
-                        </div>
-                    </div>
-                `).join('');
+                var listHtml = '';
+                for (var i = 0; i < sorted.length; i++) {
+                    var entry = sorted[i];
+                    var tagsHtml = '';
+                    if (entry.tags && entry.tags.length > 0) {
+                        tagsHtml = '<span class="tags">';
+                        for (var t = 0; t < entry.tags.length; t++) {
+                            tagsHtml += '<span class="tag">' + escapeHtml(entry.tags[t]) + '</span>';
+                        }
+                        tagsHtml += '</span>';
+                    }
+                    var summaryClass = entry.summary ? '' : ' loading';
+                    var summaryText = entry.summary ? '🧠 有总结' : '⏳ 待总结';
+                    listHtml +=
+                        '<div class="entry-card" data-id="' + entry.id +
+                        '"><div class="title">💡 ' + escapeHtml(entry.title || '未命名') + tagsHtml +
+                        '</div><div class="preview">' + escapeHtml(entry.content || '') +
+                        '</div><div class="meta"><span>' + formatTime(entry.timestamp || entry.updateTime) +
+                        '</span><span class="summary-badge' + summaryClass + '">' + summaryText + '</span></div></div>';
+                }
+                entryList.innerHTML = listHtml;
             }
 
             // 时间轴
-            let timelineHtml = `<div class="timeline-title">⏳ 时间轴</div>`;
+            var timelineHtml = '<div class="timeline-title">⏳ 时间轴</div>';
             if (sorted.length === 0) {
-                timelineHtml += `<div style="padding:12px;color:#6d9f82;font-size:12px;">暂无记录</div>`;
+                timelineHtml += '<div style="padding:12px;color:#6d9f82;font-size:12px;">暂无记录</div>';
             } else {
-                const recent = sorted.slice(0, 15);
-                timelineHtml += recent.map(entry => {
-                    const dateObj = new Date(entry.timestamp || entry.updateTime || Date.now());
-                    const dateStr = dateObj.toLocaleDateString('zh-CN', { month: 'short', day: 'numeric' });
-                    const timeStr = dateObj.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit',
+                var recent = sorted.slice(0, 15);
+                for (var k = 0; k < recent.length; k++) {
+                    var entry = recent[k];
+                    var dateObj = new Date(entry.timestamp || entry.updateTime || Date.now());
+                    var dateStr = dateObj.toLocaleDateString('zh-CN', { month: 'short', day: 'numeric' });
+                    var timeStr = dateObj.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit',
                         hour12: false });
-                    return `
-                        <div class="timeline-item" data-id="${entry.id}">
-                            <div class="timeline-dot"></div>
-                            <div class="timeline-content">
-                                <div class="timeline-date">${dateStr}</div>
-                                <div class="timeline-time">${timeStr}</div>
-                            </div>
-                        </div>
-                    `;
-                }).join('');
+                    timelineHtml +=
+                        '<div class="timeline-item" data-id="' + entry.id +
+                        '"><div class="timeline-dot"></div><div class="timeline-content"><div class="timeline-date">' +
+                        dateStr + '</div><div class="timeline-time">' + timeStr + '</div></div></div>';
+                }
             }
             timelineContainer.innerHTML = timelineHtml;
 
             // 绑定点击事件
-            document.querySelectorAll('.entry-card').forEach(card => {
-                card.addEventListener('click', function() {
-                    const id = this.dataset.id;
+            var cards = document.querySelectorAll('.entry-card');
+            for (var c = 0; c < cards.length; c++) {
+                cards[c].addEventListener('click', function() {
+                    var id = this.dataset.id;
                     openDetail(id);
                 });
-            });
+            }
 
-            document.querySelectorAll('.timeline-item').forEach(item => {
-                item.addEventListener('click', function() {
-                    const id = this.dataset.id;
+            var items = document.querySelectorAll('.timeline-item');
+            for (var m = 0; m < items.length; m++) {
+                items[m].addEventListener('click', function() {
+                    var id = this.dataset.id;
                     openDetail(id);
                 });
-            });
+            }
         }
 
         function escapeHtml(text) {
             if (!text) return '';
-            const div = document.createElement('div');
+            var div = document.createElement('div');
             div.textContent = text;
             return div.innerHTML;
         }
@@ -1390,7 +1387,7 @@
         function formatTime(iso) {
             if (!iso) return '未知时间';
             try {
-                const d = new Date(iso);
+                var d = new Date(iso);
                 return d.toLocaleString('zh-CN', { hour12: false });
             } catch {
                 return iso;
@@ -1401,7 +1398,10 @@
         //  详情操作
         // ============================================================
         function openDetail(id) {
-            const entry = entries.find(e => e.id === id);
+            var entry = null;
+            for (var i = 0; i < entries.length; i++) {
+                if (entries[i].id === id) { entry = entries[i]; break; }
+            }
             if (!entry) { showToast('记录不存在'); return; }
 
             currentEditId = id;
@@ -1411,7 +1411,6 @@
             detailSummaryText.className = 'summary-text' + (entry.summary ? '' : ' loading');
             detailTimestamp.textContent = formatTime(entry.timestamp || entry.updateTime);
 
-            // 渲染标签
             renderDetailTags(entry.tags || []);
 
             detailOverlay.classList.add('open');
@@ -1419,15 +1418,16 @@
 
         function renderDetailTags(tags) {
             detailTagsSection.innerHTML = '';
-            (tags || []).forEach(tag => {
-                const span = document.createElement('span');
+            for (var i = 0; i < (tags || []).length; i++) {
+                var tag = tags[i];
+                var span = document.createElement('span');
                 span.className = 'tag-item';
-                span.innerHTML = `${escapeHtml(tag)} <button class="del-tag" data-tag="${escapeHtml(tag)}">✕</button>`;
+                span.innerHTML = escapeHtml(tag) +
+                    ' <button class="del-tag" data-tag="' + escapeHtml(tag) + '">✕</button>';
                 detailTagsSection.appendChild(span);
-            });
+            }
 
-            // 添加输入框
-            const input = document.createElement('input');
+            var input = document.createElement('input');
             input.className = 'add-tag-input';
             input.placeholder = '添加标签';
             input.id = 'detailTagInput';
@@ -1438,7 +1438,7 @@
                 }
             });
 
-            const addBtn = document.createElement('button');
+            var addBtn = document.createElement('button');
             addBtn.className = 'add-tag-btn';
             addBtn.textContent = '＋';
             addBtn.addEventListener('click', addDetailTag);
@@ -1446,26 +1446,31 @@
             detailTagsSection.appendChild(input);
             detailTagsSection.appendChild(addBtn);
 
-            // 删除标签事件
-            document.querySelectorAll('#detailTagsSection .del-tag').forEach(btn => {
-                btn.addEventListener('click', function() {
-                    const tag = this.dataset.tag;
+            var delBtns = document.querySelectorAll('#detailTagsSection .del-tag');
+            for (var j = 0; j < delBtns.length; j++) {
+                delBtns[j].addEventListener('click', function() {
+                    var tag = this.dataset.tag;
                     removeDetailTag(tag);
                 });
-            });
+            }
         }
 
         function addDetailTag() {
-            const input = document.getElementById('detailTagInput');
+            var input = document.getElementById('detailTagInput');
             if (!input) return;
-            const tag = input.value.trim();
+            var tag = input.value.trim();
             if (!tag) return;
             if (tag.length > 20) { showToast('标签不能超过20个字符'); return; }
 
-            const entry = entries.find(e => e.id === currentEditId);
+            var entry = null;
+            for (var i = 0; i < entries.length; i++) {
+                if (entries[i].id === currentEditId) { entry = entries[i]; break; }
+            }
             if (!entry) return;
             if (!entry.tags) entry.tags = [];
-            if (entry.tags.includes(tag)) { showToast('标签已存在'); return; }
+            for (var j = 0; j < entry.tags.length; j++) {
+                if (entry.tags[j] === tag) { showToast('标签已存在'); return; }
+            }
 
             entry.tags.push(tag);
             entry.updateTime = new Date().toISOString();
@@ -1474,12 +1479,20 @@
             render();
             if (isCloudReady) syncToCloud(entries);
             showToast('✅ 标签已添加');
+            input.value = '';
         }
 
         function removeDetailTag(tag) {
-            const entry = entries.find(e => e.id === currentEditId);
+            var entry = null;
+            for (var i = 0; i < entries.length; i++) {
+                if (entries[i].id === currentEditId) { entry = entries[i]; break; }
+            }
             if (!entry) return;
-            entry.tags = (entry.tags || []).filter(t => t !== tag);
+            var newTags = [];
+            for (var j = 0; j < entry.tags.length; j++) {
+                if (entry.tags[j] !== tag) newTags.push(entry.tags[j]);
+            }
+            entry.tags = newTags;
             entry.updateTime = new Date().toISOString();
             saveLocalData();
             renderDetailTags(entry.tags);
@@ -1494,23 +1507,25 @@
         }
 
         async function saveDetail() {
-            const entry = entries.find(e => e.id === currentEditId);
+            var entry = null;
+            for (var i = 0; i < entries.length; i++) {
+                if (entries[i].id === currentEditId) { entry = entries[i]; break; }
+            }
             if (!entry) { showToast('记录不存在'); return; }
 
-            const title = detailTitleInput.value.trim() || '未命名';
-            const content = detailContentTextarea.value.trim();
+            var title = detailTitleInput.value.trim() || '未命名';
+            var content = detailContentTextarea.value.trim();
             if (!content) { showToast('请输入内容'); return; }
 
             entry.title = title;
             entry.content = content;
             entry.updateTime = new Date().toISOString();
 
-            // 如果内容有变化，重新生成总结
-            const shouldRegenerate = entry.summary === '' || entry.summary === '点击「重新生成」或保存时自动生成';
+            var shouldRegenerate = entry.summary === '' || entry.summary === '点击「重新生成」或保存时自动生成';
             if (shouldRegenerate) {
                 detailSummaryText.textContent = '⏳ 生成中...';
                 detailSummaryText.className = 'summary-text loading';
-                const result = await generateSummary(content, title);
+                var result = await generateSummary(content, title);
                 if (result.success) {
                     entry.summary = result.summary;
                     detailSummaryText.textContent = result.summary;
@@ -1518,22 +1533,23 @@
                 } else {
                     detailSummaryText.textContent = '❌ ' + result.error;
                     detailSummaryText.className = 'summary-text error';
-                    // 不阻止保存，只是总结失败
                 }
             }
 
             saveLocalData();
             render();
             if (isCloudReady) syncToCloud(entries);
-
-            // 更新详情中的时间戳
             detailTimestamp.textContent = formatTime(entry.updateTime);
             showToast('✅ 已保存');
         }
 
         async function deleteDetail() {
             if (!confirm('确定删除这条记录吗？')) return;
-            entries = entries.filter(e => e.id !== currentEditId);
+            var newEntries = [];
+            for (var i = 0; i < entries.length; i++) {
+                if (entries[i].id !== currentEditId) newEntries.push(entries[i]);
+            }
+            entries = newEntries;
             saveLocalData();
             render();
             if (isCloudReady) syncToCloud(entries);
@@ -1542,10 +1558,13 @@
         }
 
         async function regenerateSummary() {
-            const entry = entries.find(e => e.id === currentEditId);
+            var entry = null;
+            for (var i = 0; i < entries.length; i++) {
+                if (entries[i].id === currentEditId) { entry = entries[i]; break; }
+            }
             if (!entry) { showToast('记录不存在'); return; }
 
-            const apiKey = getApiKey();
+            var apiKey = getApiKey();
             if (!apiKey) { showToast('请先配置 API Key'); return; }
 
             if (isGeneratingSummary) return;
@@ -1555,7 +1574,7 @@
             detailSummaryText.textContent = '⏳ 生成中...';
             detailSummaryText.className = 'summary-text loading';
 
-            const result = await generateSummary(entry.content, entry.title);
+            var result = await generateSummary(entry.content, entry.title);
 
             if (result.success) {
                 entry.summary = result.summary;
@@ -1578,19 +1597,20 @@
         // ============================================================
         //  新建记录
         // ============================================================
-        let modalTags = [];
+        var modalTags = [];
 
         function renderModalTags() {
             modalTagsSection.innerHTML = '';
-            modalTags.forEach(tag => {
-                const span = document.createElement('span');
+            for (var i = 0; i < modalTags.length; i++) {
+                var tag = modalTags[i];
+                var span = document.createElement('span');
                 span.className = 'tag-pill';
-                span.innerHTML = `${escapeHtml(tag)} <button class="remove-tag" data-tag="${escapeHtml(tag)}">✕</button>`;
+                span.innerHTML = escapeHtml(tag) +
+                    ' <button class="remove-tag" data-tag="' + escapeHtml(tag) + '">✕</button>';
                 modalTagsSection.appendChild(span);
-            });
+            }
 
-            // 添加输入框
-            const input = document.createElement('input');
+            var input = document.createElement('input');
             input.className = 'tag-input';
             input.placeholder = '添加标签';
             input.id = 'modalTagInput2';
@@ -1601,7 +1621,7 @@
                 }
             });
 
-            const addBtn = document.createElement('button');
+            var addBtn = document.createElement('button');
             addBtn.className = 'add-tag-btn';
             addBtn.textContent = '＋ 添加';
             addBtn.addEventListener('click', addModalTag);
@@ -1609,23 +1629,29 @@
             modalTagsSection.appendChild(input);
             modalTagsSection.appendChild(addBtn);
 
-            // 删除标签事件
-            document.querySelectorAll('#modalTagsSection .remove-tag').forEach(btn => {
-                btn.addEventListener('click', function() {
-                    const tag = this.dataset.tag;
-                    modalTags = modalTags.filter(t => t !== tag);
+            var removeBtns = document.querySelectorAll('#modalTagsSection .remove-tag');
+            for (var j = 0; j < removeBtns.length; j++) {
+                removeBtns[j].addEventListener('click', function() {
+                    var tag = this.dataset.tag;
+                    var newTags = [];
+                    for (var k = 0; k < modalTags.length; k++) {
+                        if (modalTags[k] !== tag) newTags.push(modalTags[k]);
+                    }
+                    modalTags = newTags;
                     renderModalTags();
                 });
-            });
+            }
         }
 
         function addModalTag() {
-            const input = document.getElementById('modalTagInput2');
+            var input = document.getElementById('modalTagInput2');
             if (!input) return;
-            const tag = input.value.trim();
+            var tag = input.value.trim();
             if (!tag) return;
             if (tag.length > 20) { showToast('标签不能超过20个字符'); return; }
-            if (modalTags.includes(tag)) { showToast('标签已存在'); return; }
+            for (var i = 0; i < modalTags.length; i++) {
+                if (modalTags[i] === tag) { showToast('标签已存在'); return; }
+            }
             modalTags.push(tag);
             input.value = '';
             renderModalTags();
@@ -1637,7 +1663,7 @@
             inputContent.value = '';
             renderModalTags();
             modalOverlay.classList.add('open');
-            setTimeout(() => inputTitle.focus(), 100);
+            setTimeout(function() { inputTitle.focus(); }, 100);
         }
 
         function closeModal() {
@@ -1645,15 +1671,15 @@
         }
 
         async function saveNewEntry() {
-            const title = inputTitle.value.trim() || '未命名';
-            const content = inputContent.value.trim();
+            var title = inputTitle.value.trim() || '未命名';
+            var content = inputContent.value.trim();
             if (!content) { showToast('请输入内容'); return; }
 
-            const entry = {
+            var entry = {
                 id: generateId(),
                 title: title,
                 content: content,
-                tags: [...modalTags],
+                tags: modalTags.slice(),
                 summary: '',
                 timestamp: new Date().toISOString(),
                 updateTime: new Date().toISOString()
@@ -1664,8 +1690,7 @@
             render();
             closeModal();
 
-            // 生成总结
-            const result = await generateSummary(content, title);
+            var result = await generateSummary(content, title);
             if (result.success) {
                 entry.summary = result.summary;
                 saveLocalData();
@@ -1673,8 +1698,6 @@
             }
 
             if (isCloudReady) syncToCloud(entries);
-
-            // 打开详情查看
             openDetail(entry.id);
             showToast('✅ 已保存');
         }
@@ -1693,30 +1716,31 @@
             }
 
             showToast('🔄 正在同步...');
-            const cloudData = await loadFromCloud();
+            var cloudData = await loadFromCloud();
 
             if (cloudData !== null) {
                 if (cloudData.length > 0) {
-                    // 合并云端数据：优先使用云端（按更新时间）
-                    const localIds = new Set(entries.map(e => e.id));
-                    const merged = [...entries];
-
-                    for (const cloudEntry of cloudData) {
-                        const existing = merged.find(e => e.id === cloudEntry.id);
-                        if (existing) {
-                            // 如果云端更新，覆盖
-                            const cloudTime = new Date(cloudEntry.updateTime || 0).getTime();
-                            const localTime = new Date(existing.updateTime || 0).getTime();
-                            if (cloudTime > localTime) {
-                                Object.assign(existing, cloudEntry);
+                    var merged = entries.slice();
+                    for (var i = 0; i < cloudData.length; i++) {
+                        var cloudEntry = cloudData[i];
+                        var found = false;
+                        for (var j = 0; j < merged.length; j++) {
+                            if (merged[j].id === cloudEntry.id) {
+                                found = true;
+                                var cloudTime = new Date(cloudEntry.updateTime || 0).getTime();
+                                var localTime = new Date(merged[j].updateTime || 0).getTime();
+                                if (cloudTime > localTime) {
+                                    merged[j] = cloudEntry;
+                                }
+                                break;
                             }
-                        } else {
+                        }
+                        if (!found) {
                             merged.push(cloudEntry);
                         }
                     }
                     entries = merged;
                 } else {
-                    // 云端为空，推送本地
                     await syncToCloud(entries);
                 }
                 saveLocalData();
@@ -1731,8 +1755,7 @@
         //  初始化
         // ============================================================
         async function init() {
-            // 加载 API Key
-            const savedKey = getApiKey();
+            var savedKey = getApiKey();
             if (savedKey) {
                 apiKeyInput.value = savedKey;
                 updateApiStatus(true);
@@ -1740,10 +1763,8 @@
                 updateApiStatus(false);
             }
 
-            // 加载本地数据
-            const hasLocal = loadLocalData();
+            var hasLocal = loadLocalData();
             if (!hasLocal || entries.length === 0) {
-                // 添加示例数据
                 entries = [{
                     id: generateId(),
                     title: '关于自动压缩的新想法',
@@ -1772,22 +1793,26 @@
                 saveLocalData();
             }
 
-            // 初始化云端
             await initCloud();
             if (isCloudReady) {
-                const cloudData = await loadFromCloud();
+                var cloudData = await loadFromCloud();
                 if (cloudData !== null && cloudData.length > 0) {
-                    // 合并
-                    const merged = [...entries];
-                    for (const cloudEntry of cloudData) {
-                        const existing = merged.find(e => e.id === cloudEntry.id);
-                        if (existing) {
-                            const cloudTime = new Date(cloudEntry.updateTime || 0).getTime();
-                            const localTime = new Date(existing.updateTime || 0).getTime();
-                            if (cloudTime > localTime) {
-                                Object.assign(existing, cloudEntry);
+                    var merged = entries.slice();
+                    for (var i = 0; i < cloudData.length; i++) {
+                        var cloudEntry = cloudData[i];
+                        var found = false;
+                        for (var j = 0; j < merged.length; j++) {
+                            if (merged[j].id === cloudEntry.id) {
+                                found = true;
+                                var cloudTime = new Date(cloudEntry.updateTime || 0).getTime();
+                                var localTime = new Date(merged[j].updateTime || 0).getTime();
+                                if (cloudTime > localTime) {
+                                    merged[j] = cloudEntry;
+                                }
+                                break;
                             }
-                        } else {
+                        }
+                        if (!found) {
                             merged.push(cloudEntry);
                         }
                     }
@@ -1805,9 +1830,8 @@
         // ============================================================
         //  事件绑定
         // ============================================================
-        // API Key
         saveKeyBtn.addEventListener('click', function() {
-            const key = apiKeyInput.value.trim();
+            var key = apiKeyInput.value.trim();
             if (!key) { showToast('请输入 API Key'); return; }
             if (!key.startsWith('sk-')) { showToast('格式错误，应以 sk- 开头'); return; }
             setApiKey(key);
@@ -1815,10 +1839,8 @@
             showToast('✅ API Key 已保存');
         });
 
-        // 同步
         syncBtn.addEventListener('click', manualSync);
 
-        // 新建
         newEntryBtn.addEventListener('click', openModal);
         cancelModalBtn.addEventListener('click', closeModal);
         modalOverlay.addEventListener('click', function(e) {
@@ -1826,7 +1848,6 @@
         });
         saveEntryBtn.addEventListener('click', saveNewEntry);
 
-        // 快捷键：Enter 在模态框中触发保存
         inputContent.addEventListener('keydown', function(e) {
             if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
                 e.preventDefault();
@@ -1834,7 +1855,6 @@
             }
         });
 
-        // 详情
         closeDetail.addEventListener('click', closeDetail);
         detailOverlay.addEventListener('click', function(e) {
             if (e.target === this) closeDetail();
@@ -1843,7 +1863,6 @@
         deleteDetailBtn.addEventListener('click', deleteDetail);
         regenerateSummaryBtn.addEventListener('click', regenerateSummary);
 
-        // 快捷键：Ctrl+S 保存详情
         document.addEventListener('keydown', function(e) {
             if (e.key === 's' && (e.ctrlKey || e.metaKey)) {
                 if (detailOverlay.classList.contains('open')) {
@@ -1857,43 +1876,16 @@
             }
         });
 
-        // 模态框标签输入
-        document.addEventListener('click', function(e) {
-            if (e.target.id === 'modalAddTagBtn') {
-                const input = document.getElementById('modalTagInput');
-                if (input) {
-                    const tag = input.value.trim();
-                    if (!tag) return;
-                    if (tag.length > 20) { showToast('标签不能超过20个字符'); return; }
-                    if (modalTags.includes(tag)) { showToast('标签已存在'); return; }
-                    modalTags.push(tag);
-                    input.value = '';
-                    renderModalTags();
-                }
+        modalAddTagBtn.addEventListener('click', function() {
+            var tag = modalTagInput.value.trim();
+            if (!tag) return;
+            if (tag.length > 20) { showToast('标签不能超过20个字符'); return; }
+            for (var i = 0; i < modalTags.length; i++) {
+                if (modalTags[i] === tag) { showToast('标签已存在'); return; }
             }
-        });
-
-        // 详情标签输入 - 使用事件委托
-        document.addEventListener('click', function(e) {
-            if (e.target.classList.contains('add-tag-btn') && e.target.closest('#detailTagsSection')) {
-                const input = document.getElementById('detailTagInput');
-                if (input) {
-                    const tag = input.value.trim();
-                    if (!tag) return;
-                    if (tag.length > 20) { showToast('标签不能超过20个字符'); return; }
-                    const entry = entries.find(e => e.id === currentEditId);
-                    if (!entry) return;
-                    if (!entry.tags) entry.tags = [];
-                    if (entry.tags.includes(tag)) { showToast('标签已存在'); return; }
-                    entry.tags.push(tag);
-                    entry.updateTime = new Date().toISOString();
-                    saveLocalData();
-                    renderDetailTags(entry.tags);
-                    render();
-                    if (isCloudReady) syncToCloud(entries);
-                    showToast('✅ 标签已添加');
-                }
-            }
+            modalTags.push(tag);
+            modalTagInput.value = '';
+            renderModalTags();
         });
 
         // 启动
