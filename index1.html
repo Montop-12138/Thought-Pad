@@ -121,7 +121,7 @@
             <h1>
                 <span class="icon-leaf">🌱</span>
                 灵感备忘录
-                <span>云端同步</span>
+                <span>云端同步 · 调试版</span>
             </h1>
             <div class="header-actions">
                 <span class="sync-badge" id="syncBadge">
@@ -156,7 +156,6 @@
     <!-- ===== 详情弹窗 ===== -->
     <div class="detail-overlay" id="detailOverlay">
         <div class="detail-panel">
-            <!-- ★★★ 关键修复：ID 改为 closeDetailBtn ★★★ -->
             <button class="close-btn" id="closeDetailBtn">✕</button>
             <input class="detail-title-input" id="detailTitleInput" placeholder="输入标题..." />
             <div class="detail-tags-section" id="detailTagsSection"></div>
@@ -200,7 +199,7 @@
 
     <script>
         // ============================================================
-        //  配置
+        //  配置 - 使用您的环境 ID
         // ============================================================
         var ENV_ID = 'deepseek-chat-d5gg0748z3b9dfe24';
         var COLLECTION_NAME = 'inspiration_entries';
@@ -214,6 +213,19 @@
         var isCloudReady = false;
         var isSyncing = false;
         var isGeneratingSummary = false;
+
+        // 调试日志开关
+        var DEBUG = true;
+
+        function log(msg, data) {
+            if (DEBUG) {
+                if (data) {
+                    console.log('🔍 [调试] ' + msg, data);
+                } else {
+                    console.log('🔍 [调试] ' + msg);
+                }
+            }
+        }
 
         // ============================================================
         //  DOM 引用
@@ -231,7 +243,6 @@
         var timelineContainer = document.getElementById('timelineContainer');
         var toast = document.getElementById('toast');
 
-        // ★★★ 详情 - 使用正确的 ID ★★★
         var detailOverlay = document.getElementById('detailOverlay');
         var closeDetailBtn = document.getElementById('closeDetailBtn');
         var detailTitleInput = document.getElementById('detailTitleInput');
@@ -243,7 +254,6 @@
         var deleteDetailBtn = document.getElementById('deleteDetailBtn');
         var regenerateSummaryBtn = document.getElementById('regenerateSummaryBtn');
 
-        // 模态框
         var modalOverlay = document.getElementById('modalOverlay');
         var inputTitle = document.getElementById('inputTitle');
         var inputContent = document.getElementById('inputContent');
@@ -283,32 +293,45 @@
         }
 
         // ============================================================
-        //  腾讯云初始化
+        //  腾讯云初始化（带详细日志）
         // ============================================================
         var cloudApp = null;
         var cloudDb = null;
 
         async function initCloud() {
+            log('开始初始化云端...');
             try {
                 if (typeof cloudbase === 'undefined') {
-                    console.error('❌ cloudbase SDK 未加载');
+                    log('❌ cloudbase SDK 未加载');
                     isCloudReady = false;
                     updateSyncStatus('offline');
                     return false;
                 }
+                log('✅ cloudbase SDK 已加载');
+
                 cloudApp = cloudbase.init({ env: ENV_ID });
+                log('✅ cloudbase 初始化完成，环境 ID: ' + ENV_ID);
+
                 var auth = cloudApp.auth();
                 var loginState = await auth.getLoginState();
+                log('当前登录状态:', loginState);
+
                 if (!loginState) {
+                    log('未登录，尝试匿名登录...');
                     await auth.anonymousAuthProvider().signIn();
+                    log('✅ 匿名登录成功');
+                } else {
+                    log('✅ 已登录');
                 }
+
                 cloudDb = cloudApp.database();
                 isCloudReady = true;
                 updateSyncStatus('synced');
-                console.log('✅ 云端初始化成功');
+                log('✅ 云端初始化成功');
                 return true;
             } catch (e) {
-                console.error('❌ 云端初始化失败:', e);
+                log('❌ 云端初始化失败: ' + e.message);
+                console.error(e);
                 isCloudReady = false;
                 updateSyncStatus('offline');
                 return false;
@@ -316,17 +339,28 @@
         }
 
         // ============================================================
-        //  云端数据操作
+        //  云端数据操作（带详细日志）
         // ============================================================
         async function loadFromCloud() {
-            if (!isCloudReady || !cloudDb) return null;
+            log('开始从云端拉取数据...');
+            if (!isCloudReady || !cloudDb) {
+                log('❌ 云端未就绪，无法拉取');
+                return null;
+            }
             try {
                 updateSyncStatus('syncing');
-                var res = await cloudDb.collection(COLLECTION_NAME)
+                var collection = cloudDb.collection(COLLECTION_NAME);
+                log('查询集合: ' + COLLECTION_NAME);
+
+                var res = await collection
                     .orderBy('updateTime', 'desc')
                     .limit(500)
                     .get();
+
+                log('云端返回结果:', res);
+
                 if (res.data && res.data.length > 0) {
+                    log('✅ 从云端拉取到 ' + res.data.length + ' 条记录');
                     return res.data.map(function(item) {
                         return {
                             id: item.id || item._id,
@@ -339,37 +373,56 @@
                             _cloudId: item._id
                         };
                     });
+                } else {
+                    log('⚠️ 云端暂无数据');
+                    return [];
                 }
-                return [];
             } catch (e) {
-                console.error('❌ 拉取云端数据失败:', e);
+                log('❌ 拉取云端数据失败: ' + e.message);
+                console.error(e);
                 updateSyncStatus('error');
                 return null;
             }
         }
 
         async function syncToCloud(entriesData) {
-            if (!isCloudReady || !cloudDb) return false;
-            if (isSyncing) return false;
+            log('开始同步到云端，共 ' + entriesData.length + ' 条记录');
+            if (!isCloudReady || !cloudDb) {
+                log('❌ 云端未就绪，无法同步');
+                return false;
+            }
+            if (isSyncing) {
+                log('⚠️ 正在同步中，跳过');
+                return false;
+            }
             try {
                 isSyncing = true;
                 updateSyncStatus('syncing');
                 var collection = cloudDb.collection(COLLECTION_NAME);
+                log('集合: ' + COLLECTION_NAME);
+
+                // 先查询现有数据
                 var existing = await collection.limit(500).get();
                 var existingData = existing.data || [];
+                log('云端现有 ' + existingData.length + ' 条记录');
 
+                // 删除所有现有数据
                 for (var i = 0; i < existingData.length; i++) {
                     var item = existingData[i];
                     if (item._id) {
                         try {
                             await collection.doc(item._id).remove();
-                        } catch (e) { console.warn('删除失败:', e); }
+                            log('已删除旧记录: ' + item._id);
+                        } catch (e) {
+                            log('⚠️ 删除失败: ' + e.message);
+                        }
                     }
                 }
 
+                // 上传新数据
                 for (var j = 0; j < entriesData.length; j++) {
                     var entry = entriesData[j];
-                    await collection.add({
+                    var result = await collection.add({
                         id: entry.id,
                         title: entry.title || '未命名',
                         content: entry.content || '',
@@ -378,13 +431,16 @@
                         timestamp: entry.timestamp || new Date().toISOString(),
                         updateTime: new Date().toISOString()
                     });
+                    log('✅ 已上传记录: ' + entry.id + ' (title: ' + entry.title + ')');
                 }
 
+                log('✅ 同步完成，共上传 ' + entriesData.length + ' 条记录');
                 updateSyncStatus('synced');
                 isSyncing = false;
                 return true;
             } catch (e) {
-                console.error('❌ 同步到云端失败:', e);
+                log('❌ 同步到云端失败: ' + e.message);
+                console.error(e);
                 updateSyncStatus('error');
                 isSyncing = false;
                 return false;
@@ -420,14 +476,17 @@
             if (stored) {
                 try {
                     entries = JSON.parse(stored);
+                    log('从本地加载 ' + entries.length + ' 条记录');
                     return true;
                 } catch (e) { entries = []; }
             }
+            log('本地无数据');
             return false;
         }
 
         function saveLocalData() {
             localStorage.setItem('inspiration_entries_cloud', JSON.stringify(entries));
+            log('保存到本地 ' + entries.length + ' 条记录');
         }
 
         // ============================================================
@@ -670,7 +729,10 @@
             saveLocalData();
             renderDetailTags(entry.tags);
             render();
-            if (isCloudReady) syncToCloud(entries);
+            if (isCloudReady) {
+                log('标签变更，触发同步...');
+                syncToCloud(entries);
+            }
             showToast('✅ 标签已添加');
             input.value = '';
         }
@@ -890,74 +952,115 @@
                 render();
             }
 
-            if (isCloudReady) syncToCloud(entries);
+            if (isCloudReady) {
+                log('新建记录，触发同步...');
+                await syncToCloud(entries);
+            }
             openDetail(entry.id);
             showToast('✅ 已保存');
         }
 
         // ============================================================
-        //  同步操作
+        //  ★★★ 核心：手动同步（带详细日志） ★★★
         // ============================================================
         async function manualSync() {
+            log('========== 开始手动同步 ==========');
+
             if (!isCloudReady) {
+                log('云端未连接，尝试初始化...');
                 showToast('云端未连接，尝试初始化...');
                 await initCloud();
                 if (!isCloudReady) {
+                    log('❌ 云端连接失败');
                     showToast('❌ 云端连接失败');
                     return;
                 }
             }
 
+            log('当前本地数据: ' + entries.length + ' 条');
+            log('本地数据详情:', JSON.stringify(entries, null, 2));
+
             showToast('🔄 正在同步...');
             var cloudData = await loadFromCloud();
 
-            if (cloudData !== null) {
-                if (cloudData.length > 0) {
-                    var merged = entries.slice();
-                    for (var i = 0; i < cloudData.length; i++) {
-                        var cloudEntry = cloudData[i];
-                        var found = false;
-                        for (var j = 0; j < merged.length; j++) {
-                            if (merged[j].id === cloudEntry.id) {
-                                found = true;
-                                var cloudTime = new Date(cloudEntry.updateTime || 0).getTime();
-                                var localTime = new Date(merged[j].updateTime || 0).getTime();
-                                if (cloudTime > localTime) {
-                                    merged[j] = cloudEntry;
-                                }
-                                break;
+            if (cloudData === null) {
+                log('❌ 拉取云端数据失败');
+                showToast('❌ 同步失败');
+                return;
+            }
+
+            log('云端数据: ' + cloudData.length + ' 条');
+            if (cloudData.length > 0) {
+                log('云端数据详情:', JSON.stringify(cloudData, null, 2));
+            }
+
+            if (cloudData.length > 0) {
+                // 合并：云端优先
+                var merged = entries.slice();
+                log('开始合并，本地初始 ' + merged.length + ' 条');
+
+                for (var i = 0; i < cloudData.length; i++) {
+                    var cloudEntry = cloudData[i];
+                    var found = false;
+                    for (var j = 0; j < merged.length; j++) {
+                        if (merged[j].id === cloudEntry.id) {
+                            found = true;
+                            var cloudTime = new Date(cloudEntry.updateTime || 0).getTime();
+                            var localTime = new Date(merged[j].updateTime || 0).getTime();
+                            if (cloudTime > localTime) {
+                                log('云端记录更新: ' + cloudEntry.id + ' (云端 ' + cloudTime + ' > 本地 ' +
+                                    localTime + ')');
+                                merged[j] = cloudEntry;
+                            } else {
+                                log('本地记录更新: ' + cloudEntry.id + ' (本地 ' + localTime + ' > 云端 ' +
+                                    cloudTime + ')');
                             }
-                        }
-                        if (!found) {
-                            merged.push(cloudEntry);
+                            break;
                         }
                     }
-                    entries = merged;
-                } else {
-                    await syncToCloud(entries);
+                    if (!found) {
+                        log('新记录从云端合并: ' + cloudEntry.id);
+                        merged.push(cloudEntry);
+                    }
                 }
+                entries = merged;
+                log('合并完成，共 ' + entries.length + ' 条');
                 saveLocalData();
                 render();
-                showToast('✅ 同步完成');
+                showToast('✅ 同步完成 (合并 ' + cloudData.length + ' 条云端记录)');
             } else {
-                showToast('❌ 同步失败');
+                // 云端为空，推送本地数据
+                log('云端为空，推送本地 ' + entries.length + ' 条数据到云端');
+                var result = await syncToCloud(entries);
+                if (result) {
+                    showToast('✅ 同步完成 (上传 ' + entries.length + ' 条记录)');
+                } else {
+                    showToast('❌ 上传失败');
+                }
             }
+
+            log('========== 手动同步结束 ==========');
         }
 
         // ============================================================
         //  初始化
         // ============================================================
         async function init() {
+            log('========== 应用初始化 ==========');
+
             var savedKey = getApiKey();
             if (savedKey) {
                 apiKeyInput.value = savedKey;
                 updateApiStatus(true);
+                log('✅ 已加载 API Key');
             } else {
                 updateApiStatus(false);
+                log('⚠️ 未配置 API Key');
             }
 
             var hasLocal = loadLocalData();
             if (!hasLocal || entries.length === 0) {
+                log('本地无数据，创建示例数据...');
                 entries = [{
                     id: generateId(),
                     title: '关于自动压缩的新想法',
@@ -984,12 +1087,17 @@
                     updateTime: new Date(Date.now() - 3600000 * 5).toISOString()
                 }];
                 saveLocalData();
+                log('✅ 已创建 ' + entries.length + ' 条示例数据');
             }
 
+            log('初始化云端...');
             await initCloud();
+
             if (isCloudReady) {
+                log('尝试从云端拉取数据...');
                 var cloudData = await loadFromCloud();
                 if (cloudData !== null && cloudData.length > 0) {
+                    log('云端有 ' + cloudData.length + ' 条数据，开始合并...');
                     var merged = entries.slice();
                     for (var i = 0; i < cloudData.length; i++) {
                         var cloudEntry = cloudData[i];
@@ -1011,13 +1119,20 @@
                     }
                     entries = merged;
                     saveLocalData();
+                    log('合并完成，共 ' + entries.length + ' 条');
                 } else if (cloudData !== null && cloudData.length === 0 && entries.length > 0) {
+                    log('云端为空，推送本地数据...');
                     await syncToCloud(entries);
                 }
+            } else {
+                log('⚠️ 云端未就绪，仅使用本地数据');
             }
 
             render();
-            console.log('✅ 灵感备忘录初始化完成（云端同步版）');
+            log('========== 初始化完成 ==========');
+            console.log('✅ 灵感备忘录初始化完成（调试版）');
+            console.log('📊 当前记录数: ' + entries.length);
+            console.log('☁️ 云端状态: ' + (isCloudReady ? '已连接' : '未连接'));
         }
 
         // ============================================================
@@ -1030,6 +1145,7 @@
             setApiKey(key);
             updateApiStatus(true);
             showToast('✅ API Key 已保存');
+            log('API Key 已保存');
         });
 
         syncBtn.addEventListener('click', manualSync);
@@ -1048,7 +1164,6 @@
             }
         });
 
-        // ★★★ 关键：使用正确的变量 closeDetailBtn ★★★
         closeDetailBtn.addEventListener('click', closeDetail);
         detailOverlay.addEventListener('click', function(e) {
             if (e.target === this) closeDetail();
@@ -1092,6 +1207,10 @@
         window.render = render;
         window.syncToCloud = syncToCloud;
         window.generateSummary = generateSummary;
+        window.manualSync = manualSync;
+        window.log = log;
+
+        console.log('💡 调试提示: 在控制台输入 manualSync() 可手动触发同步');
     </script>
 </body>
 </html>
