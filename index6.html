@@ -3,11 +3,9 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
-  <title>故事织机 · 可编辑版</title>
-  <!-- SDK -->
+  <title>故事织机 · 智能编辑版</title>
   <script src="https://static.cloudbase.net/cloudbase-js-sdk/2.28.6/cloudbase.full.js"></script>
   <style>
-    /* --- 原有样式保持不变，新增编辑相关样式 --- */
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body {
       background: #e8ddd0;
@@ -45,7 +43,6 @@
       background: linear-gradient(90deg, transparent, rgba(180, 150, 120, 0.15), transparent);
       opacity: 0.4;
     }
-    /* --- 状态栏、区域样式 (与之前一致，略) --- */
     .status-bar { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; font-size: 0.8rem; color: #5a4a3a; border-bottom: 1px dashed #d9c8b2; padding-bottom: 0.6rem; margin-bottom: 1.8rem; letter-spacing: 0.03em; gap: 0.5rem; }
     .status-item { display: flex; align-items: center; gap: 0.4rem; background: rgba(220, 200, 180, 0.2); padding: 0.2rem 0.8rem; border-radius: 30px; border: 1px solid #e6d7c6; backdrop-filter: blur(2px); }
     .status-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: #b0a090; }
@@ -107,7 +104,6 @@
     .message-thinking .bubble { background: #f0ece6; border-color: #ddd0c4; font-style: italic; color: #7a6a5a; }
     .bubble small { display: block; font-size: 0.65rem; opacity: 0.7; margin-top: 0.4rem; text-align: right; font-style: italic; }
     .msg-label { font-size: 0.7rem; font-weight: bold; letter-spacing: 0.04em; color: #7a6a5a; margin-bottom: 0.2rem; }
-    /* --- 可编辑样式 --- */
     .message-user .bubble .edit-btn {
       position: absolute;
       top: 6px;
@@ -159,6 +155,8 @@
     .message-user .bubble .edit-actions button:hover { background: #e6d7c6; }
     .message-user .bubble .edit-actions .save-edit-btn { background: #dccbb8; border-color: #c0ab94; }
     .message-user .bubble .edit-actions .save-edit-btn:hover { background: #d0bca8; }
+    .message-user .bubble .edit-actions .regenerate-btn { background: #e8ddd0; border-color: #c0b0a0; }
+    .message-user .bubble .edit-actions .regenerate-btn:hover { background: #dcc8b8; }
 
     .framework-area { background: #f5efe6; border-radius: 20px; padding: 1.2rem 1.4rem; margin: 1.8rem 0 1.2rem; border: 1px solid #d9c8b2; box-shadow: inset 0 1px 8px rgba(160, 130, 100, 0.08); }
     .framework-title { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.8rem; flex-wrap: wrap; }
@@ -282,7 +280,7 @@
       cloudDocId: localStorage.getItem('storyLoom_cloudDocId') || null,
       lastSyncTime: localStorage.getItem('storyLoom_lastSyncTime') || null,
       isProcessing: false,
-      editingIndex: -1 // 记录正在编辑的消息索引
+      editingIndex: -1
     };
 
     // ========== DOM ==========
@@ -343,123 +341,95 @@
       updateProgress();
     }
 
-    // ---- 核心：渲染消息（支持编辑模式） ----
-    function renderMessages() {
-      dialogueBox.innerHTML = '';
-      state.messages.forEach((msg, index) => {
-        const div = document.createElement('div');
-        let cls = `message ${msg.role === 'user' ? 'message-user' : 'message-ai'}`;
-        if (msg.role === 'thinking') cls = 'message-thinking';
-        div.className = cls;
-        
-        const bubble = document.createElement('div');
-        bubble.className = 'bubble';
-        
-        // 标签
-        const label = document.createElement('div');
-        label.className = 'msg-label';
-        if (msg.role === 'user') label.textContent = '✍️ 你';
-        else if (msg.role === 'thinking') label.textContent = '⏳ AI 思考中...';
-        else label.textContent = '📜 引导者';
-        bubble.appendChild(label);
-
-        // 内容区域：编辑模式 vs 显示模式
-        if (msg.role === 'user' && state.editingIndex === index) {
-          // --- 编辑模式 ---
-          const textarea = document.createElement('textarea');
-          textarea.className = 'edit-area';
-          textarea.value = msg.content;
-          textarea.rows = 3;
-          bubble.appendChild(textarea);
-
-          const actions = document.createElement('div');
-          actions.className = 'edit-actions';
-          const saveBtn = document.createElement('button');
-          saveBtn.className = 'save-edit-btn';
-          saveBtn.textContent = '✓ 保存修改';
-          const cancelBtn = document.createElement('button');
-          cancelBtn.textContent = '取消';
-          actions.appendChild(saveBtn);
-          actions.appendChild(cancelBtn);
-          bubble.appendChild(actions);
-
-          // 保存修改
-          saveBtn.addEventListener('click', () => {
-            const newContent = textarea.value.trim();
-            if (!newContent) { alert('内容不能为空'); return; }
-            // 更新消息
-            state.messages[index].content = newContent;
-            state.editingIndex = -1;
-            saveState();
-            renderMessages();
-            // 重新提取摘要（从用户消息中提取最新的回答）
-            extractSummaryFromMessages();
-            updateDraft();
-            autoSyncToCloud();
-          });
-          cancelBtn.addEventListener('click', () => {
-            state.editingIndex = -1;
-            renderMessages();
-          });
-          // 自动聚焦
-          setTimeout(() => textarea.focus(), 50);
-        } else {
-          // --- 显示模式 ---
-          const contentDiv = document.createElement('div');
-          contentDiv.textContent = msg.content;
-          bubble.appendChild(contentDiv);
-
-          // 编辑按钮（仅用户消息）
-          if (msg.role === 'user') {
-            const editBtn = document.createElement('button');
-            editBtn.className = 'edit-btn';
-            editBtn.textContent = '✎';
-            editBtn.title = '编辑此消息';
-            editBtn.addEventListener('click', (e) => {
-              e.stopPropagation();
-              state.editingIndex = index;
-              renderMessages();
-            });
-            bubble.appendChild(editBtn);
+    // ========== 核心：重新生成后续对话 ==========
+    async function regenerateFromIndex(startIndex) {
+      // 保留 startIndex 之前的消息（包括当前编辑的消息）
+      const previousMessages = state.messages.slice(0, startIndex + 1);
+      // 获取当前阶段
+      let currentStage = state.currentStage;
+      
+      // 从最后一条用户消息开始重新生成
+      let lastUserMsg = previousMessages.filter(m => m.role === 'user').pop();
+      if (!lastUserMsg) return;
+      
+      // 确定从哪个阶段开始
+      // 计算已完成的阶段数
+      const userMsgs = previousMessages.filter(m => m.role === 'user');
+      const stageIndex = Math.min(userMsgs.length - 1, STAGES.length - 1);
+      const startStage = STAGES[stageIndex] || 'hook';
+      
+      // 清空 summary 中当前及之后的阶段
+      const stageKeys = ['world', 'char', 'conflict', 'struct'];
+      const keyIndex = stageKeys.indexOf(startStage);
+      if (keyIndex >= 0) {
+        for (let i = keyIndex; i < stageKeys.length; i++) {
+          state.summary[stageKeys[i]] = '';
+        }
+      }
+      
+      // 重建消息列表
+      state.messages = previousMessages;
+      state.currentStage = startStage;
+      
+      // 更新摘要
+      for (let i = 0; i < userMsgs.length; i++) {
+        const msg = userMsgs[i];
+        const stage = STAGES[i];
+        if (stage && stage !== 'hook') {
+          const keyMap = { world: 'world', character: 'char', conflict: 'conflict', structure: 'struct' };
+          const key = keyMap[stage];
+          if (key) {
+            state.summary[key] = msg.content;
           }
         }
-
-        // 时间
-        const time = document.createElement('small');
-        time.textContent = new Date(msg.time || Date.now()).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' });
-        bubble.appendChild(time);
-        
-        div.appendChild(bubble);
-        dialogueBox.appendChild(div);
-      });
-      dialogueBox.scrollTop = dialogueBox.scrollHeight;
-    }
-
-    // ---- 从消息中提取摘要 ----
-    function extractSummaryFromMessages() {
-      // 找到所有用户消息，按阶段提取
-      const userMessages = state.messages.filter(m => m.role === 'user');
-      // 简单策略：根据阶段顺序提取
-      const stageKeys = ['world', 'char', 'conflict', 'struct'];
-      let stageIndex = 0;
-      for (const msg of userMessages) {
-        if (stageIndex >= stageKeys.length) break;
-        const content = msg.content;
-        // 检查是否包含阶段关键词（简单启发式）
-        // 但由于我们按顺序存储，可以从后往前匹配
       }
-      // 更可靠：从state.summary中保留，但编辑时手动更新
-    }
-
-    // ---- 添加消息 ----
-    function addMessage(role, content, save = true) {
-      state.messages.push({ role, content, time: Date.now() });
-      if (save) saveState();
+      
+      saveState();
       renderMessages();
-      if (cloudInitialized && state.userId && save) autoSyncToCloud();
+      updateDraft();
+      
+      // 如果还有后续阶段，重新生成 AI 问题
+      if (startStage && startStage !== 'completed') {
+        const idx = STAGES.indexOf(startStage);
+        if (idx >= 0 && idx < STAGES.length - 1) {
+          const nextStage = STAGES[idx + 1];
+          state.currentStage = nextStage;
+          saveState();
+          
+          // 显示思考状态
+          addMessage('thinking', '正在重新生成引导问题…', false);
+          state.isProcessing = true;
+          
+          try {
+            const question = await getAIResponse(nextStage, lastUserMsg.content);
+            // 移除思考消息
+            state.messages = state.messages.filter(m => m.role !== 'thinking');
+            renderMessages();
+            addMessage('ai', question);
+            state.isProcessing = false;
+          } catch (err) {
+            state.messages = state.messages.filter(m => m.role !== 'thinking');
+            renderMessages();
+            console.error('重新生成失败:', err);
+            const fallback = {
+              world: '这个世界和现实世界最大的不同是什么？',
+              character: '你的主角最想要得到什么？',
+              conflict: '这个故事最核心的矛盾是什么？',
+              structure: '故事从哪里开始？在哪里结束？'
+            };
+            addMessage('ai', `⚠️ 重新生成遇到问题，让我们继续：${fallback[nextStage] || '能再深入谈谈你的想法吗？'}`);
+            state.isProcessing = false;
+          }
+        } else {
+          // 所有阶段已完成
+          state.currentStage = 'completed';
+          saveState();
+          addMessage('ai', '🎉 故事框架已初具雏形！继续完善细节，或导出草稿开始正式写作吧！');
+        }
+      }
     }
 
-    // ---- AI 调用 ----
+    // ========== AI 调用 ==========
     async function getAIResponse(stage, userAnswer) {
       const apiKey = state.apiKey;
       if (!apiKey) throw new Error('请先配置 DeepSeek API Key');
@@ -490,7 +460,123 @@
       return data.choices[0].message.content.trim();
     }
 
-    // ---- 处理用户回答 ----
+    // ========== 渲染消息 ==========
+    function renderMessages() {
+      dialogueBox.innerHTML = '';
+      state.messages.forEach((msg, index) => {
+        const div = document.createElement('div');
+        let cls = `message ${msg.role === 'user' ? 'message-user' : 'message-ai'}`;
+        if (msg.role === 'thinking') cls = 'message-thinking';
+        div.className = cls;
+        
+        const bubble = document.createElement('div');
+        bubble.className = 'bubble';
+        
+        const label = document.createElement('div');
+        label.className = 'msg-label';
+        if (msg.role === 'user') label.textContent = '✍️ 你';
+        else if (msg.role === 'thinking') label.textContent = '⏳ AI 思考中...';
+        else label.textContent = '📜 引导者';
+        bubble.appendChild(label);
+
+        if (msg.role === 'user' && state.editingIndex === index) {
+          // 编辑模式
+          const textarea = document.createElement('textarea');
+          textarea.className = 'edit-area';
+          textarea.value = msg.content;
+          textarea.rows = 3;
+          bubble.appendChild(textarea);
+
+          const actions = document.createElement('div');
+          actions.className = 'edit-actions';
+          
+          const saveBtn = document.createElement('button');
+          saveBtn.className = 'save-edit-btn';
+          saveBtn.textContent = '✓ 保存并重新引导';
+          saveBtn.title = '保存修改后，AI 将重新生成后续引导';
+          
+          const cancelBtn = document.createElement('button');
+          cancelBtn.textContent = '取消';
+          
+          actions.appendChild(saveBtn);
+          actions.appendChild(cancelBtn);
+          bubble.appendChild(actions);
+
+          saveBtn.addEventListener('click', async () => {
+            const newContent = textarea.value.trim();
+            if (!newContent) { alert('内容不能为空'); return; }
+            
+            // 更新当前消息
+            state.messages[index].content = newContent;
+            state.editingIndex = -1;
+            saveState();
+            renderMessages();
+            
+            // 更新摘要
+            if (state.currentStage) {
+              const keyMap = { world: 'world', character: 'char', conflict: 'conflict', structure: 'struct' };
+              const key = keyMap[state.currentStage];
+              if (key) {
+                state.summary[key] = newContent;
+                saveState();
+                updateDraft();
+              }
+            }
+            
+            // 重新生成后续对话
+            await regenerateFromIndex(index);
+            autoSyncToCloud();
+          });
+          
+          cancelBtn.addEventListener('click', () => {
+            state.editingIndex = -1;
+            renderMessages();
+          });
+          
+          setTimeout(() => textarea.focus(), 50);
+        } else {
+          // 显示模式
+          const contentDiv = document.createElement('div');
+          contentDiv.textContent = msg.content;
+          bubble.appendChild(contentDiv);
+
+          if (msg.role === 'user') {
+            const editBtn = document.createElement('button');
+            editBtn.className = 'edit-btn';
+            editBtn.textContent = '✎';
+            editBtn.title = '编辑此消息（修改后将重新生成后续引导）';
+            editBtn.addEventListener('click', (e) => {
+              e.stopPropagation();
+              if (state.isProcessing) {
+                alert('请等待当前处理完成');
+                return;
+              }
+              state.editingIndex = index;
+              renderMessages();
+            });
+            bubble.appendChild(editBtn);
+          }
+        }
+
+        const time = document.createElement('small');
+        time.textContent = new Date(msg.time || Date.now()).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' });
+        bubble.appendChild(time);
+        
+        div.appendChild(bubble);
+        dialogueBox.appendChild(div);
+      });
+      dialogueBox.scrollTop = dialogueBox.scrollHeight;
+    }
+
+    // ========== 添加消息 ==========
+    function addMessage(role, content, save = true) {
+      state.messages.push({ role, content, time: Date.now() });
+      if (save) saveState();
+      renderMessages();
+      if (cloudInitialized && state.userId && save) autoSyncToCloud();
+    }
+
+    // ========== 处理用户回答 ==========
     async function processUserAnswer(answer) {
       if (!answer.trim() || state.isProcessing) return;
       
@@ -498,7 +584,6 @@
       addMessage('thinking', '正在思考你的回答…', false);
       state.isProcessing = true;
       
-      // 更新框架摘要（当前阶段）
       if (state.currentStage) {
         const keyMap = { world: 'world', character: 'char', conflict: 'conflict', structure: 'struct' };
         const key = keyMap[state.currentStage];
@@ -511,7 +596,6 @@
       
       try {
         const aiQuestion = await getAIResponse(state.currentStage, answer);
-        // 移除思考消息
         state.messages = state.messages.filter(m => m.role !== 'thinking');
         renderMessages();
         
@@ -527,7 +611,7 @@
         } else {
           state.currentStage = 'completed';
           saveState();
-          addMessage('ai', '🎉 故事框架已初具雏形！您的故事已经拥有了完整骨架。继续完善细节，或导出草稿开始正式写作吧！');
+          addMessage('ai', '🎉 故事框架已初具雏形！继续完善细节，或导出草稿开始正式写作吧！');
         }
       } catch (err) {
         state.messages = state.messages.filter(m => m.role !== 'thinking');
@@ -546,7 +630,7 @@
       }
     }
 
-    // ---- 业务逻辑 ----
+    // ========== 业务逻辑 ==========
     function resetAll() {
       if (confirm('重置所有对话与进度？')) {
         state.messages = [];
@@ -607,7 +691,7 @@
       updateProgress();
     }
 
-    // ---- 云端同步 ----
+    // ========== 云端同步 ==========
     async function loadFromCloud() {
       if (!cloudInitialized || !state.userId) return;
       try {
@@ -669,7 +753,7 @@
     let syncTimeout = null;
     function autoSyncToCloud() { clearTimeout(syncTimeout); syncTimeout = setTimeout(saveToCloud, 3000); }
 
-    // ---- 导出 ----
+    // ========== 导出 ==========
     function exportContent(format) {
       let content = '# 故事织机 · 框架草稿\n\n';
       content += `## 灵感\n${state.inspiration || '（未记录）'}\n\n`;
@@ -699,7 +783,7 @@
       URL.revokeObjectURL(url);
     }
 
-    // ---- 初始化 ----
+    // ========== 初始化 ==========
     function initUI() {
       apiInput.value = state.apiKey;
       userIdInput.value = state.userId;
@@ -735,7 +819,7 @@
     document.getElementById('exportMd').addEventListener('click', () => exportContent('md'));
     document.getElementById('exportTxt').addEventListener('click', () => exportContent('txt'));
 
-    // ---- 输入框（支持 Shift+Enter 换行） ----
+    // ========== 输入框 ==========
     const inputArea = document.createElement('div');
     inputArea.style.display = 'flex';
     inputArea.style.marginTop = '0.8rem';
@@ -763,7 +847,6 @@
     inputArea.appendChild(sendBtn);
     dialogueBox.parentNode.insertBefore(inputArea, dialogueBox.nextSibling);
 
-    // 处理 Shift+Enter 换行，Enter 发送
     answerInput.addEventListener('keydown', (e) => {
       if (e.key === 'Enter' && !e.shiftKey) {
         e.preventDefault();
@@ -780,12 +863,11 @@
       }
       processUserAnswer(val);
       answerInput.value = '';
-      answerInput.style.height = '44px'; // 重置高度
+      answerInput.style.height = '44px';
     }
 
     sendBtn.addEventListener('click', handleAnswer);
 
-    // 自动调整高度
     answerInput.addEventListener('input', function() {
       this.style.height = '44px';
       this.style.height = Math.min(this.scrollHeight, 150) + 'px';
